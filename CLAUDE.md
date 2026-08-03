@@ -8,6 +8,35 @@ MARSKY şirketi için Bilgisayar Mühendisi pozisyonu teknik değerlendirme case
 
 ---
 
+## Mevcut Durum (son güncelleme: 3 Ağustos 2026)
+
+**Bitti:**
+- **Faz 0** — Ortam: Flutter 3.44.8, Android SDK 36, AVD `marsky_pixel7`, `flutter doctor`
+  Android/Chrome yeşil (Visual Studio bilinçli atlandı).
+- **Faz 1** — Repo iskeleti, sıkı lint (`flutter analyze` temiz), `.gitattributes`,
+  GitHub private repo `github.com/icengizhan/marsky_shooter` bağlı.
+- **Faz 2** — Katmanlı mimari: `core/config/game_config.dart` (tüm sihirli sayılar),
+  `domain/` (saf Dart: `ScoreEntry`, `ScoreRepository` sözleşmesi),
+  `data/` (`KeyValueStore` arayüzü + `shared_preferences` uygulaması,
+  `ScoreRepositoryImpl`), `game/marsky_game.dart` (boş uzay tuvali),
+  `app/marsky_app.dart` (`GameWidget.controlled`). 2 test geçiyor, web derleniyor.
+
+**Sıradaki:**
+- **Faz 3** — Asset pipeline: `assets/images` + `assets/audio`, `pubspec.yaml`'a assets
+  bölümü, `onLoad()` içinde `images.loadAll()` / `FlameAudio.audioCache.loadAll()`.
+- **Faz 4** — `PlayerComponent` (drag), `EnemyComponent`, `BulletComponent`,
+  `SpawnManager`, parallax arka plan.
+- **Faz 5** — Hitbox çarpışma (`active`/`passive` ayrımı).
+- **Faz 6** — Oyun durumları + 4 overlay. **Faz 7** — Riverpod + kalıcı skor.
+- **Faz 8** — Testler. **Faz 9** — README + ARCHITECTURE.md + GIF + APK.
+- **Teslim günü (6 Ağu)** — `okanaktas` collaborator olarak eklenecek.
+
+⚠️ Git CLI'dan push kimlik doğrulaması gerektiriyor. Bir kez kendi terminalinde
+`git push origin main` çalıştırıp tarayıcıdan onaylandığında token saklanır ve
+sonraki push'lar sorunsuz olur. O yapılmadıysa push'u GitHub Desktop üstlenir.
+
+---
+
 ## Teslim Kısıtları (pazarlığa kapalı)
 
 | Kısıt | Kaynak | Sonuç |
