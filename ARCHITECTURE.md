@@ -174,6 +174,32 @@ assert'i atıyordu.
 `overlays.addEntry` ile kaydeder. Assert'i devre dışı bırakmak yerine testin üretim ortamını
 taklit etmesi seçildi — yazım hatasına karşı güvenlik ağı korunur.
 
+### 4.4 Puanın %88'i tek kaynaktan geliyordu
+
+**Belirti:** Emülatörde gerçek bir oyun oynanıp oyun bitti ekranındaki skor dökümü okundu:
+55 saniyede **60 düşman** öldürülmüş, yani +600 puan — skorun **%88'i**. Hayatta kalma (+55)
+ve elmas (+25) gürültü seviyesindeydi.
+
+**Kök neden (asıl mesele):** Bu bir puan ayarı sorunu değil, bir **oynanış** sorunuydu.
+Düşmanlar oyuncuyu *kusursuz* nişanlıyordu; mermiler de oyuncudan düz yukarı çıktığı için her
+düşman kendiliğinden mermi hattına giriyordu. Öldürmek beceri gerektirmiyordu.
+
+**Çözüm iki katmanda:**
+1. **Oynanış:** nişana ±20° rastgele sapma (`GameConfig.enemyAimSpread`). Düşmanlar açılı gelir,
+   oyuncunun vurmak için yatayda hizalanması gerekir, bir kısmı kaçar. Hesap `EnemyAim` adında
+   **saf bir fonksiyona** çıkarıldı — sapmanın hız büyüklüğünü bozmadığı ve en büyük sapmada bile
+   düşmanın yukarı gitmediği oyun döngüsü çalıştırılmadan test edilir. (Açı üzerinden hesaplanır:
+   vektöre doğrudan sapma eklenirse hem yön hem hız değişir.)
+2. **Puan değerleri:** saniye +1→+10, elmas +25→+100 (düşman +10 sabit). Elmas en değerli, çünkü
+   onu almak tek gerçek risk/ödül kararıdır.
+
+**Yeniden ölçüm** (aynı yöntem, aynı ortam): 51 sn hayatta kalma +510 (%52), 27 düşman +270 (%28),
+2 elmas +200 (%20). Öldürülen düşman sayısı 60'tan 27'ye indi ve oyun hâlâ ölümle sonuçlanıyor —
+yani baskı korundu.
+
+Not: bu sayılar tek bir dosyada (`GameConfig`) toplandığı için ayarlama üç satırlık bir
+değişiklikti. Sihirli sayıları component'lerin içine dağıtmamanın somut kazancı budur.
+
 ---
 
 ## 5. Test Stratejisi

@@ -1,17 +1,114 @@
-# marsky_shooter
+# MARSKY — Flutter & Flame Case Çalışması
 
-MARSKY Flutter and Flame case study - 2D top-down shooter
+Flutter ve **Flame** oyun motoruyla geliştirilmiş 2D top-down shooter.
+Tüm oynanış Flame Component System üzerinde çalışır; Flutter widget'ları yalnızca
+menü / HUD / duraklat / oyun bitti ekranlarında (`game.overlays`) kullanılır.
 
-## Getting Started
+| Ana Menü | Oynanış | Oyun Bitti |
+|---|---|---|
+| ![Ana menü](docs/screenshots/01-main-menu.png) | ![Oynanış](docs/screenshots/02-gameplay.png) | ![Oyun bitti](docs/screenshots/03-game-over.png) |
 
-This project is a starting point for a Flutter application.
+---
 
-A few resources to get you started if this is your first Flutter project:
+## Nasıl Oynanır
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+- **Ekranın herhangi bir yerinde sürükle** — gemi parmağını yumuşak bir gecikmeyle takip eder
+- **Ateş otomatiktir** (0,22 saniyede bir mermi)
+- Düşmanlar yukarıdan, oyuncuya doğru **açılı** iner — vurmak için yatayda hizalanmak gerekir
+- **Bir düşmana çarparsan oyun biter** (can yok, tek temas)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Puan
+
+| Kaynak | Puan |
+|---|---|
+| Hayatta kalınan her saniye | +10 |
+| Vurulan düşman | +10 |
+| Toplanan elmas | +100 |
+
+Elmas en değerli kaynak: onu almak için güvenli konumundan çıkıp düşmanların arasına
+girmen gerekir — oyundaki tek gerçek risk/ödül kararı.
+
+Zorluk her 15 saniyede artar (düşman oluşma aralığı ×0,88), ama 0,25 saniyelik bir tabanın
+altına inmez; oyun oynanamaz hale gelmez.
+
+---
+
+## Çalıştırma
+
+Gereksinim: **Flutter 3.44+** (Dart 3.12+).
+
+```bash
+flutter pub get
+
+flutter run -d chrome            # en hızlı iterasyon
+flutter run -d <android-cihaz>   # hedef platform
+```
+
+```bash
+flutter analyze                  # statik analiz — sıfır uyarı olmalı
+flutter test                     # 53 test
+flutter build apk --release      # teslim APK'sı
+```
+
+Oyun **dikey (portrait)** moda kilitlidir ve 480×800 referans çözünürlüğe göre kurgulanmıştır;
+sabit çözünürlüklü kamera sayesinde her ekran boyutunda aynı oynanış alanı gösterilir.
+
+> **Not:** Ses `flame_audio` üzerinden çalışır ve masaüstü/web'de güvenilir değildir.
+> Ses testi Android'de yapılmalıdır. Masaüstünde sessizlik bir hata değildir.
+
+---
+
+## Teknoloji
+
+| Katman | Seçim |
+|---|---|
+| Oyun motoru | **Flame 1.38** — `FlameGame`, `HasCollisionDetection`, `ParallaxComponent` |
+| Durum yönetimi (oyun dışı) | **Riverpod 3.4** — yüksek skor, skor geçmişi, ses ayarı |
+| Durum yönetimi (oyun içi) | `ValueNotifier` — anlık skor, oyun durumu |
+| Kalıcılık | `shared_preferences`, `KeyValueStore` arayüzünün arkasında |
+| Test | `flame_test` + `mocktail` |
+
+Oyun **içi** ve **dışı** state'in ayrılması bilinçlidir: skor saniyede onlarca kez değişir,
+Riverpod üzerinden akıtılsa her değişimde widget ağacı yeniden kurulur ve kare hızı düşer.
+Gerekçelerin tamamı → **[ARCHITECTURE.md](ARCHITECTURE.md)**
+
+---
+
+## Proje Yapısı
+
+```
+lib/
+├── core/           → sabitler (GameConfig: tüm ayarlanabilir sayılar tek yerde)
+├── domain/         → SAF DART: varlıklar + repository sözleşmeleri
+├── data/           → sözleşmelerin shared_preferences uygulaması
+├── game/           → Flame dünyası (Riverpod'u ve UI'ı bilmez)
+└── presentation/   → Flutter overlay'leri + Riverpod provider'ları
+
+tools/generate_assets.ps1   → tüm sprite ve sesleri ÜRETEN betik
+```
+
+Tüm görsel ve işitsel varlıklar bu betikle **kod ile üretilmiştir** — üçüncü parti telif
+içermez. Yeniden üretmek için:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\generate_assets.ps1
+```
+
+---
+
+## Case Gereksinimleri
+
+Her maddenin kodda nerede karşılandığı ve **neden bu şekilde** yapıldığı
+**[ARCHITECTURE.md](ARCHITECTURE.md)** dosyasında madde madde eşlenmiştir. Özet:
+
+- ✅ Flame zorunlu — oynanışta tek bir Flutter widget'ı yok
+- ✅ Component mimarisi — oyun mantığı 12 ayrı sınıfa dağıtılmış, kök sınıf yalnızca kompozisyon yapar
+- ✅ Hitbox tabanlı çarpışma — `active`/`passive` ayrımı ile performanslı, sıfır manuel kesişim matematiği
+- ✅ Riverpod ile oyun dışı state yönetimi
+- ✅ Asset preload — `onLoad`'da bir kez, component'ler önbellekten okur
+- ✅ Clean Architecture + SOLID — katmanlar tek yönlü bağımlı, `domain/` framework bağımsız
+- ✅ 53 test, `flutter analyze` sıfır uyarı (strict-casts / strict-inference / strict-raw-types)
+
+`ARCHITECTURE.md` ayrıca geliştirme sırasında **ölçümle bulunan** dört gerçek problemi ve
+çözümlerini içerir (hitbox kapsanma hatası, sesin testi engellemesi, overlay bağımlılığı,
+puanın tek kaynaktan gelmesi).
