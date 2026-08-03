@@ -42,5 +42,10 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # NOT: assets bolumu Faz 3'te (asset pipeline) eklenecek.
-  # Var olmayan bir klasoru burada tanimlamak build'i kirar.
+  # Flame varsayilan olarak goruntuleri assets/images/, sesleri assets/audio/
+  # altinda arar. Klasorun tamami tanimlanir; tek tek dosya listelemek yeni
+  # varlik eklendiginde unutulmaya acik olur.
+  # Bu varliklar tools/generate_assets.ps1 ile uretilir (ucuncu parti telif yok).
+  assets:
+    - assets/images/
+    - assets/audio/
