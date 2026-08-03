@@ -35,6 +35,10 @@ class GameScore {
     points.value += GameConfig.scorePerEnemyKilled;
   }
 
+  void addPickupCollected() {
+    points.value += GameConfig.scorePerPickupCollected;
+  }
+
   void reset() {
     points.value = 0;
     _survivalRemainder = 0;

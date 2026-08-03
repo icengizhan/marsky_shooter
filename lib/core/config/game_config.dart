@@ -57,6 +57,23 @@ abstract final class GameConfig {
   static const double enemySpeedMin = 70;
   static const double enemySpeedMax = 140;
 
+  // ------------------------------------------------------- toplanabilir nesne
+  static const double pickupWidth = 32;
+  static const double pickupHeight = 32;
+
+  /// Dusmanlardan yavas iner: oyuncuya yetisme sansi verir.
+  static const double pickupSpeed = 85;
+
+  /// Kendi ekseninde donme hizi (radyan/saniye). Yalnizca gorsel canlilik --
+  /// daire hitbox donmeden etkilenmedigi icin oynanisi degistirmez.
+  static const double pickupRotationSpeed = 1.4;
+
+  /// Toplanabilir nesne olusma araligi (saniye).
+  /// Zorluk egrisine BAGLI DEGIL: bu bir odul, ceza degil. Zamanla siklasirsa
+  /// oyun kolaylasir, tam tersi olurdu.
+  static const double pickupIntervalMin = 3.5;
+  static const double pickupIntervalMax = 7.0;
+
   // ---------------------------------------------------------------- spawn
   /// Dusmanlar bu aralikta rastgele gecikmelerle olusur (saniye).
   static const double spawnIntervalMin = 0.55;
@@ -74,6 +91,10 @@ abstract final class GameConfig {
 
   /// Vurulan her dusman icin puan.
   static const int scorePerEnemyKilled = 10;
+
+  /// Toplanan her nesne icin puan. Dusman oldurmekten daha degerli, cunku
+  /// nesneyi almak icin oyuncunun risk alip konumundan sapmasi gerekir.
+  static const int scorePerPickupCollected = 25;
 
   // ---------------------------------------------------------------- kalicilik
   /// Skor gecmisinde saklanacak en fazla kayit sayisi.

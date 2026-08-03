@@ -5,6 +5,7 @@ import '../../../core/assets/game_assets.dart';
 import '../../../core/config/game_config.dart';
 import '../../marsky_game.dart';
 import '../enemy/enemy_component.dart';
+import '../pickup/pickup_component.dart';
 import '../projectile/bullet_component.dart';
 
 /// Oyuncunun gemisi.
@@ -91,13 +92,20 @@ class PlayerComponent extends SpriteComponent
     PositionComponent other,
   ) {
     super.onCollisionStart(intersectionPoints, other);
-    if (other is! EnemyComponent) {
+
+    if (other is EnemyComponent) {
+      // Oyuncu "ne olacagina" karar vermez, yalnizca olayi bildirir. Oyun
+      // bitirme kararini kok sinif verir -- boylece can sistemi/kalkan gibi bir
+      // mekanik eklenmek istendiginde bu sinif degismez.
+      game.handlePlayerHit();
       return;
     }
-    // Oyuncu "ne olacagina" karar vermez, yalnizca olayi bildirir. Oyun bitirme
-    // kararini kok sinif verir -- boylece can sistemi/kalkan gibi bir mekanik
-    // eklenmek istendiginde bu sinif degismez.
-    game.handlePlayerHit();
+
+    if (other is PickupComponent && !other.isCollected) {
+      other.collect();
+      game.score.addPickupCollected();
+      game.audio.playPickup();
+    }
   }
 
   @override

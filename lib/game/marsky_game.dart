@@ -10,10 +10,13 @@ import 'audio/flame_game_audio.dart';
 import 'audio/game_audio.dart';
 import 'components/background/starfield_background.dart';
 import 'components/enemy/enemy_component.dart';
+import 'components/pickup/pickup_component.dart';
 import 'components/player/player_component.dart';
 import 'components/projectile/bullet_component.dart';
 import 'input/drag_input_component.dart';
 import 'managers/enemy_spawner.dart';
+import 'managers/interval_spawner.dart';
+import 'managers/pickup_spawner.dart';
 import 'state/game_overlays.dart';
 import 'state/game_phase.dart';
 import 'state/game_score.dart';
@@ -58,7 +61,10 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
   );
 
   PlayerComponent? _player;
-  EnemySpawner? _spawner;
+
+  /// Tum uretici'ler. Liste halinde tutulmasi, yeni bir uretici eklendiginde
+  /// sifirlama kodunun degismesini onler.
+  final List<IntervalSpawner> _spawners = <IntervalSpawner>[];
 
   /// Oyuncu henuz yuklenmemis olabilecegi icin nullable dondurulur.
   /// Spawner dusman yonunu hesaplamak icin bunu kullanir.
@@ -100,9 +106,10 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
     _player = player;
     world.add(player);
 
-    final EnemySpawner spawner = EnemySpawner();
-    _spawner = spawner;
-    world.add(spawner);
+    _spawners
+      ..add(EnemySpawner())
+      ..add(PickupSpawner());
+    await world.addAll(_spawners);
 
     // Girdi yakalayici en son eklenir. Oyuncunun `nudge` metodu dogrudan
     // geri cagri (callback) olarak verilir -- girdi katmani oyuncunun ic
@@ -198,9 +205,16 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
         .toList(growable: false)) {
       bullet.removeFromParent();
     }
+    for (final PickupComponent pickup in world.children
+        .whereType<PickupComponent>()
+        .toList(growable: false)) {
+      pickup.removeFromParent();
+    }
 
     _player?.resetToStart();
-    _spawner?.reset();
+    for (final IntervalSpawner spawner in _spawners) {
+      spawner.reset();
+    }
     score.reset();
   }
 
