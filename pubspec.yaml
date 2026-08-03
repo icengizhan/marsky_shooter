@@ -1,0 +1,46 @@
+name: marsky_shooter
+description: "MARSKY Flutter and Flame case study - 2D top-down shooter"
+# Bu paket pub.dev'e yayinlanmaz.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Oyun motoru. Case gerekliligi: oynanis tamamen Flame Component System uzerinde.
+  # https://docs.flame-engine.org/
+  flame: ^1.38.0
+
+  # Flame'in ses katmani. Asset preload icin FlameAudio.audioCache kullanilir.
+  flame_audio: ^2.12.2
+
+  # Oyun DISI UI state'i (ayarlar, yuksek skor, skor gecmisi).
+  # Oyun ICI state Flame tarafinda ValueNotifier ile tutulur - bkz. CLAUDE.md
+  # https://riverpod.dev/
+  flutter_riverpod: ^3.4.2
+
+  # Yuksek skorun cihazda kalici saklanmasi.
+  shared_preferences: ^2.5.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Flame component/oyun testleri icin testWithGame yardimcilari.
+  flame_test: ^2.3.0
+
+  # Repository katmani testlerinde datasource taklidi icin.
+  mocktail: ^1.0.5
+
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  # NOT: assets bolumu Faz 3'te (asset pipeline) eklenecek.
+  # Var olmayan bir klasoru burada tanimlamak build'i kirar.

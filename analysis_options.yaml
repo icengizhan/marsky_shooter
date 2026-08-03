@@ -1,0 +1,33 @@
+# Statik analiz yapilandirmasi.
+# Case beklentisi: "Modüler, okunabilir ve test edilebilir bir yapı" -> lint'ler
+# varsayilandan daha siki tutuldu. `flutter analyze` temiz olmadan commit atilmaz.
+# https://dart.dev/tools/analysis
+
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    # Ortuk (implicit) tip donusumlerini ve dynamic kacaklarini kapatir.
+    # Derleme zamaninda hata yakalamak, calisma aninda cokmekten iyidir.
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    # TODO yorumlari analiz ciktisinda gurultu yapmasin.
+    todo: ignore
+
+linter:
+  rules:
+    # Okunabilirlik
+    - always_declare_return_types
+    - prefer_single_quotes
+    - directives_ordering
+    - sort_constructors_first
+    - use_super_parameters
+    - require_trailing_commas
+
+    # Guvenlik / dogruluk
+    - prefer_final_locals
+    - prefer_final_in_for_each
+    - unawaited_futures
+    - avoid_print

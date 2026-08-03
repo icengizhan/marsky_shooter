@@ -1,0 +1,24 @@
+# Satir sonlarini normalize et: repoda her zaman LF, boylece Windows/macOS/Linux
+# arasinda diff gurultusu ve "tum dosya degismis" gorunumu olusmaz.
+* text=auto eol=lf
+
+# Windows'un kendi calistirdigi betikler CRLF olmak ZORUNDA - LF ile cmd.exe
+# her satirin ilk karakterini yutar.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+gradlew.bat text eol=crlf
+
+# Ikili dosyalara dokunma
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.wav binary
+*.mp3 binary
+*.ogg binary
+*.ttf binary
+*.otf binary
+*.jar binary
+*.keystore binary
