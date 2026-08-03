@@ -2,25 +2,33 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
+import 'package:flutter/foundation.dart';
 
 import '../core/assets/game_assets.dart';
 import '../core/config/game_config.dart';
 import 'audio/flame_game_audio.dart';
 import 'audio/game_audio.dart';
 import 'components/background/starfield_background.dart';
+import 'components/enemy/enemy_component.dart';
 import 'components/player/player_component.dart';
+import 'components/projectile/bullet_component.dart';
 import 'input/drag_input_component.dart';
 import 'managers/enemy_spawner.dart';
+import 'state/game_phase.dart';
+import 'state/game_score.dart';
 
 /// Oyunun kok (root) sinifi.
 ///
 /// Bu sinif bir KOMPOZISYON KOKUDUR: oyun mantigi tasimaz, yalnizca
-/// component'leri kurar ve birbirine baglar. Hareket, ates, spawn, zorluk
-/// egrisi, girdi ve ses -- hepsi ayri siniflarda.
-/// (case PDF §3: "Tüm oyun mantığı tek bir sınıfa yığılmamalıdır")
+/// component'leri kurar, durum gecislerini yonetir ve birbirine baglar.
+/// Hareket, ates, spawn, zorluk egrisi, girdi, ses ve skor -- hepsi ayri
+/// siniflarda. (case PDF §3: "Tüm oyun mantığı tek bir sınıfa yığılmamalıdır")
+///
+/// `HasCollisionDetection`: Flame'in yerlesik carpisma sistemi. Manuel
+/// matematiksel kesisim hesabi YAZILMAZ (case PDF §3 bunu acikca yasakliyor).
 ///
 /// FlameGame (Flame — https://docs.flame-engine.org/latest/flame/game.html)
-class MarskyGame extends FlameGame {
+class MarskyGame extends FlameGame with HasCollisionDetection {
   /// [audio] disaridan verilebilir (bagimlilik enjeksiyonu): testler
   /// `SilentGameAudio` gecerek platform kanali olmadan oyunu ayaga kaldirir.
   /// Uretimde varsayilan olarak gercek `flame_audio` uygulamasi kullanilir.
@@ -39,7 +47,16 @@ class MarskyGame extends FlameGame {
   /// Tum ses cagrilarinin gectigi tek kapi.
   final GameAudio audio;
 
+  /// Anlik skor. HUD bunu `ValueListenableBuilder` ile dinler.
+  final GameScore score = GameScore();
+
+  /// Oyunun bulundugu durum. Overlay'ler bunu dinleyerek gorunur/gizlenir.
+  final ValueNotifier<GamePhase> phase = ValueNotifier<GamePhase>(
+    GamePhase.playing,
+  );
+
   PlayerComponent? _player;
+  EnemySpawner? _spawner;
 
   /// Oyuncu henuz yuklenmemis olabilecegi icin nullable dondurulur.
   /// Spawner dusman yonunu hesaplamak icin bunu kullanir.
@@ -77,11 +94,79 @@ class MarskyGame extends FlameGame {
     _player = player;
     world.add(player);
 
-    world.add(EnemySpawner());
+    final EnemySpawner spawner = EnemySpawner();
+    _spawner = spawner;
+    world.add(spawner);
 
     // Girdi yakalayici en son eklenir. Oyuncunun `nudge` metodu dogrudan
     // geri cagri (callback) olarak verilir -- girdi katmani oyuncunun ic
     // yapisini bilmez, yalnizca "su kadar otele" der.
     world.add(DragInputComponent(onPanDelta: player.nudge));
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    // Skor yalnizca aktif oynanista artar; menude veya duraklatilmisken artmaz.
+    if (phase.value == GamePhase.playing) {
+      score.addSurvivalTime(dt);
+    }
+  }
+
+  /// Oyuncu bir dusmana carptiginda [PlayerComponent] tarafindan cagrilir.
+  void handlePlayerHit() {
+    // Ayni karede birden fazla dusmana carpilabilir; ilk carpismadan sonra
+    // durum degistigi icin sonrakiler yok sayilir.
+    if (phase.value != GamePhase.playing) {
+      return;
+    }
+    audio.playExplosion();
+    phase.value = GamePhase.gameOver;
+    pauseEngine();
+  }
+
+  /// Duraklat / devam et.
+  void togglePause() {
+    if (phase.value == GamePhase.playing) {
+      phase.value = GamePhase.paused;
+      // pauseEngine: `update` cagrilari tamamen durur, yani `dt` akmaz.
+      // Yalnizca cizimi durdurmak yeterli olmazdi -- dusmanlar arka planda
+      // hareket etmeye devam ederdi.
+      pauseEngine();
+    } else if (phase.value == GamePhase.paused) {
+      phase.value = GamePhase.playing;
+      resumeEngine();
+    }
+  }
+
+  /// Oyunu bastan baslatir: sahneyi temizler, sayaclari sifirlar.
+  void restart() {
+    // Kalan dusman ve mermiler temizlenmezse yeni oyun, onceki oyunun
+    // ekrandaki nesneleriyle baslar -- sik yapilan bir hata.
+    for (final EnemyComponent enemy in world.children
+        .whereType<EnemyComponent>()
+        .toList(growable: false)) {
+      enemy.removeFromParent();
+    }
+    for (final BulletComponent bullet in world.children
+        .whereType<BulletComponent>()
+        .toList(growable: false)) {
+      bullet.removeFromParent();
+    }
+
+    _player?.resetToStart();
+    _spawner?.reset();
+    score.reset();
+    phase.value = GamePhase.playing;
+    resumeEngine();
+  }
+
+  @override
+  void onRemove() {
+    // ValueNotifier'lar elle serbest birakilir; aksi halde dinleyiciler
+    // bellekte kalir (bellek sizintisi).
+    score.dispose();
+    phase.dispose();
+    super.onRemove();
   }
 }

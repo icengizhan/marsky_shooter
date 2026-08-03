@@ -1,17 +1,20 @@
+import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 
 import '../../../core/assets/game_assets.dart';
 import '../../../core/config/game_config.dart';
 import '../../marsky_game.dart';
+import '../enemy/enemy_component.dart';
 import '../projectile/bullet_component.dart';
 
 /// Oyuncunun gemisi.
 ///
-/// Sorumlulugu iki sey: hedef konuma yumusak sekilde yaklasmak ve belirli
-/// arayla ates etmek. Girdiyi KENDISI toplamaz -- disaridan [nudge] cagrilir
-/// (bkz. `DragInputComponent`). Bu ayrim sayesinde oyuncu, kontrol yonteminden
-/// bagimsizdir.
-class PlayerComponent extends SpriteComponent with HasGameReference<MarskyGame> {
+/// Sorumlulugu uc sey: hedef konuma yumusak sekilde yaklasmak, belirli arayla
+/// ates etmek ve dusmanla carpismayi bildirmek. Girdiyi KENDISI toplamaz --
+/// disaridan [nudge] cagrilir (bkz. `DragInputComponent`). Bu ayrim sayesinde
+/// oyuncu, kontrol yonteminden bagimsizdir.
+class PlayerComponent extends SpriteComponent
+    with HasGameReference<MarskyGame>, CollisionCallbacks {
   PlayerComponent()
     : super(
         size: Vector2(GameConfig.playerWidth, GameConfig.playerHeight),
@@ -29,11 +32,24 @@ class PlayerComponent extends SpriteComponent with HasGameReference<MarskyGame> 
   @override
   Future<void> onLoad() async {
     sprite = Sprite(game.images.fromCache(GameAssets.player));
-    position = Vector2(
-      GameConfig.designWidth / 2,
-      GameConfig.designHeight - GameConfig.playerBottomMargin,
+    resetToStart();
+
+    // Hitbox sprite'tan KUCUK (yaricap = genisligin %34'u): ucgen gemi
+    // sprite'inin kose bosluklarinda "degmedim ama oldum" hissi olusmaz.
+    // Oyun hissi acisindan oyuncu lehine hitbox standart bir tekniktir.
+    //
+    // CollisionType.active: oyuncu tarama baslatir, cunku dusmanlar passive.
+    // isSolid: true -> tam kapsanma durumunda da carpisma algilanir
+    // (oyuncu ve dusman yaricaplari yakin oldugu icin bu durum mumkundur).
+    await add(
+      CircleHitbox(
+        radius: size.x * 0.34,
+        position: size / 2,
+        anchor: Anchor.center,
+        isSolid: true,
+        collisionType: CollisionType.active,
+      ),
     );
-    _target.setFrom(position);
   }
 
   /// Hedefi [delta] kadar oteler ve oyun alani icinde tutar.
@@ -55,14 +71,27 @@ class PlayerComponent extends SpriteComponent with HasGameReference<MarskyGame> 
   void _clampTargetToScreen() {
     final double halfWidth = (size.x / 2) + GameConfig.playerEdgePadding;
     final double halfHeight = (size.y / 2) + GameConfig.playerEdgePadding;
-    _target.x = _target.x.clamp(
-      halfWidth,
-      GameConfig.designWidth - halfWidth,
-    );
+    _target.x = _target.x.clamp(halfWidth, GameConfig.designWidth - halfWidth);
     _target.y = _target.y.clamp(
       halfHeight,
       GameConfig.designHeight - halfHeight,
     );
+  }
+
+  /// CollisionCallbacks.onCollisionStart (Flame — src/collisions/collision_callbacks.dart)
+  @override
+  void onCollisionStart(
+    Set<Vector2> intersectionPoints,
+    PositionComponent other,
+  ) {
+    super.onCollisionStart(intersectionPoints, other);
+    if (other is! EnemyComponent) {
+      return;
+    }
+    // Oyuncu "ne olacagina" karar vermez, yalnizca olayi bildirir. Oyun bitirme
+    // kararini kok sinif verir -- boylece can sistemi/kalkan gibi bir mekanik
+    // eklenmek istendiginde bu sinif degismez.
+    game.handlePlayerHit();
   }
 
   @override
