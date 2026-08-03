@@ -15,4 +15,8 @@ abstract interface class KeyValueStore {
   Future<String?> readString(String key);
 
   Future<void> writeString(String key, String value);
+
+  Future<bool?> readBool(String key);
+
+  Future<void> writeBool(String key, bool value);
 }

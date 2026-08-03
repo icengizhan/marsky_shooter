@@ -26,4 +26,10 @@ class SharedPrefsKeyValueStore implements KeyValueStore {
   @override
   Future<void> writeString(String key, String value) =>
       _prefs.setString(key, value);
+
+  @override
+  Future<bool?> readBool(String key) => _prefs.getBool(key);
+
+  @override
+  Future<void> writeBool(String key, bool value) => _prefs.setBool(key, value);
 }
