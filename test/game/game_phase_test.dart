@@ -8,17 +8,6 @@ import 'package:marsky_shooter/game/state/game_phase.dart';
 
 import '../helpers/test_game.dart';
 
-/// Kare suresini sabitler: 60 FPS'te bir kare.
-const double _frame = 1 / 60;
-
-/// Oyunu [seconds] saniye boyunca kare kare ilerletir.
-void advance(MarskyGame game, double seconds) {
-  final int frames = (seconds / _frame).round();
-  for (int i = 0; i < frames; i++) {
-    game.update(_frame);
-  }
-}
-
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

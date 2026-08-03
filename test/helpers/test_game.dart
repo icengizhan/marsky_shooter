@@ -18,6 +18,21 @@ import 'package:marsky_shooter/game/state/game_overlays.dart';
 ///    overlay" assert'i atar. Burada ayni kimlikler bos builder'larla
 ///    kaydedilir -- assert guvenlik agi devrede kalir, yalnizca cizilecek
 ///    widget bos olur.
+/// 60 FPS'te bir karenin suresi.
+const double frameSeconds = 1 / 60;
+
+/// Oyunu [seconds] saniye boyunca KARE KARE ilerletir.
+///
+/// Tek buyuk bir `update(seconds)` cagrisi gercekci olmaz: `dt` ile olcekleme
+/// hatalari, sayac biriktirme ve carpisma taramasi ancak coklu kucuk karelerde
+/// dogru sinanir.
+void advance(MarskyGame game, double seconds) {
+  final int frames = (seconds / frameSeconds).round();
+  for (int i = 0; i < frames; i++) {
+    game.update(frameSeconds);
+  }
+}
+
 MarskyGame createSilentGame() {
   final MarskyGame game = MarskyGame(audio: SilentGameAudio());
 
