@@ -99,3 +99,7 @@ flutter build apk --release     # teslim APK'sı
 - **Her faz sonunda commit.** Mesaj formatı: Conventional Commits
   (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`).
 - `flutter analyze` temiz olmadan commit atılmaz.
+- **Commit yazarlığı: yalnızca repo sahibi.** Commit mesajlarına `Co-Authored-By` satırı
+  veya herhangi bir AI/asistan atfı **eklenmez**. Author ve committer her zaman
+  `icengizhan <ilaydacengizhann@gmail.com>` olur. Bu, teslim edilen bir değerlendirme
+  çalışması olduğu için kesin kuraldır.
