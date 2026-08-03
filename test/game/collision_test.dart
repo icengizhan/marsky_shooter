@@ -47,6 +47,10 @@ void main() {
       MarskyGame game,
     ) async {
       await game.ready();
+
+      // Oyun ana menude baslar (case PDF §2.B); oynanisa gecilir.
+      expect(game.phase.value, GamePhase.menu);
+      game.startGame();
       expect(game.phase.value, GamePhase.playing);
 
       // Dusman dogrudan oyuncunun uzerine konur.
@@ -62,10 +66,11 @@ void main() {
       expect(game.paused, isTrue, reason: 'pauseEngine cagrilmis olmali');
     });
 
-    testWithGame<MarskyGame>('restart sahneyi temizler ve durumu sifirlar', createSilentGame, (
+    testWithGame<MarskyGame>('startGame sahneyi temizler ve durumu sifirlar', createSilentGame, (
       MarskyGame game,
     ) async {
       await game.ready();
+      game.startGame();
 
       await game.world.add(
         EnemyComponent(
@@ -78,7 +83,7 @@ void main() {
       game.handlePlayerHit();
       expect(game.phase.value, GamePhase.gameOver);
 
-      game.restart();
+      game.startGame();
       await game.ready();
 
       expect(game.phase.value, GamePhase.playing);
