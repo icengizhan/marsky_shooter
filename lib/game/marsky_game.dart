@@ -177,6 +177,18 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
     pauseEngine();
   }
 
+  /// Uygulama arka plana alindiginda cagrilir.
+  ///
+  /// Mobilde arama gelmesi veya uygulama degistirilmesi durumunda oyun arka
+  /// planda calismaya devam ederse oyuncu goremedigi bir dusmana carpip haksiz
+  /// yere olur. Yalnizca oynanis sirasinda etkilidir; menude cagrilirsa
+  /// hicbir sey yapmaz.
+  void pauseIfPlaying() {
+    if (phase.value == GamePhase.playing) {
+      togglePause();
+    }
+  }
+
   /// Duraklat / devam et.
   void togglePause() {
     if (phase.value == GamePhase.playing) {

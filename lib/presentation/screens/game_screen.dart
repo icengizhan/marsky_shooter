@@ -25,13 +25,17 @@ class GameScreen extends ConsumerStatefulWidget {
   ConsumerState<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends ConsumerState<GameScreen> {
+class _GameScreenState extends ConsumerState<GameScreen>
+    with WidgetsBindingObserver {
   late final MarskyGame _game;
 
   @override
   void initState() {
     super.initState();
     _game = MarskyGame();
+
+    // Uygulama yasam dongusunu dinler: arka plana alinirsa oyun duraklatilir.
+    WidgetsBinding.instance.addObserver(this);
 
     // Riverpod'daki ses ayarini oyunun ses kapisina aktarir.
     // BU TEK YER sayesinde oyun motoru Riverpod'u hic bilmez -- baglanti
@@ -51,6 +55,26 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       },
       fireImmediately: true,
     );
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Uygulama arka plana alindiginda / telefon kilitlendiginde oyunu duraklatir.
+  ///
+  /// Bu olmadan: oyuncuya arama gelir, oyun arka planda calismaya devam eder ve
+  /// geri dondugunde olmus olur. Mobil bir oyunda bu kabul edilemez.
+  /// WidgetsBindingObserver.didChangeAppLifecycleState
+  /// (Flutter SDK — https://api.flutter.dev/flutter/widgets/WidgetsBindingObserver/didChangeAppLifecycleState.html)
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state != AppLifecycleState.resumed) {
+      _game.pauseIfPlaying();
+    }
   }
 
   @override
