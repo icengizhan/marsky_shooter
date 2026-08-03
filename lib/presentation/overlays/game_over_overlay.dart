@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/config/game_config.dart';
 import '../../domain/entities/score_entry.dart';
 import '../../game/marsky_game.dart';
+import '../../game/state/game_score.dart';
 import '../providers/score_providers.dart';
 import 'widgets/overlay_panel.dart';
 
@@ -16,6 +18,9 @@ import 'widgets/overlay_panel.dart';
 /// veya `shared_preferences`i hic bilmez. Bu overlay gorundugu anda skoru
 /// gonderir. Boylece kalicilik tamamen sunum katmaninda kalir ve oyun motoru
 /// test edilirken disk/eklenti bagimliligi olusmaz.
+///
+/// Skor DOKUMU de burada gosterilir: oyuncu puanin nereden geldigini,
+/// ogrenmeye en meraklı oldugu anda gorur.
 class GameOverOverlay extends ConsumerStatefulWidget {
   const GameOverOverlay({required this.game, super.key});
 
@@ -26,16 +31,16 @@ class GameOverOverlay extends ConsumerStatefulWidget {
 }
 
 class _GameOverOverlayState extends ConsumerState<GameOverOverlay> {
-  /// Skor, overlay acilir acilmaz kopyalanir. `restart()` sonrasi oyunun skoru
-  /// sifirlanacagi icin dogrudan okumaya guvenilemez.
-  late final int _finalScore;
+  /// Sonuc, overlay acilir acilmaz KOPYALANIR. `startGame()` sonrasi oyunun
+  /// sayaclari sifirlanacagi icin canli degere guvenilemez.
+  late final ScoreBreakdown _result;
 
   bool _isNewRecord = false;
 
   @override
   void initState() {
     super.initState();
-    _finalScore = widget.game.score.points.value;
+    _result = widget.game.score.breakdown;
     // Sonuc beklenmez: UI aninda cizilir, kayit arka planda tamamlanir.
     unawaited(_persistResult());
   }
@@ -44,11 +49,11 @@ class _GameOverOverlayState extends ConsumerState<GameOverOverlay> {
     // Rekor kontrolu GONDERMEDEN ONCE yapilir; gonderdikten sonra bakilirsa
     // yeni skor zaten rekor olmus olur ve karsilastirma anlamsizlasir.
     final int previousBest = ref.read(highScoreProvider).value ?? 0;
-    final bool isRecord = _finalScore > previousBest;
+    final bool isRecord = _result.total > previousBest;
 
-    await ref.read(highScoreProvider.notifier).submit(_finalScore);
+    await ref.read(highScoreProvider.notifier).submit(_result.total);
     await ref.read(scoreHistoryProvider.notifier).append(
-      ScoreEntry(points: _finalScore, achievedAt: DateTime.now()),
+      ScoreEntry(points: _result.total, achievedAt: DateTime.now()),
     );
 
     // `mounted` kontrolu: oyuncu kayit tamamlanmadan "tekrar dene"ye basmis
@@ -66,7 +71,7 @@ class _GameOverOverlayState extends ConsumerState<GameOverOverlay> {
       title: 'OYUN BİTTİ',
       subtitle: _isNewRecord ? 'YENİ REKOR' : null,
       children: <Widget>[
-        StatRow(label: 'SKOR', value: '$_finalScore'),
+        StatRow(label: 'SKOR', value: '${_result.total}'),
         StatRow(
           label: 'EN YÜKSEK SKOR',
           value: highScore.when(
@@ -74,6 +79,35 @@ class _GameOverOverlayState extends ConsumerState<GameOverOverlay> {
             loading: () => '—',
             error: (Object _, StackTrace _) => '—',
           ),
+        ),
+        const Divider(color: Color(0x227DEAFF), height: 24),
+        const Text(
+          'PUAN NEREDEN GELDİ',
+          style: TextStyle(
+            color: Color(0x66FFFFFF),
+            fontSize: 10,
+            letterSpacing: 2,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        _BreakdownRow(
+          label: 'Hayatta kalma',
+          detail: '${_result.survivalSeconds} sn',
+          points: _result.survivalSeconds * GameConfig.scorePerSecond,
+        ),
+        _BreakdownRow(
+          label: 'Vurulan düşman',
+          detail:
+              '${_result.enemiesDestroyed} × ${GameConfig.scorePerEnemyKilled}',
+          points: _result.enemiesDestroyed * GameConfig.scorePerEnemyKilled,
+        ),
+        _BreakdownRow(
+          label: 'Toplanan elmas',
+          detail:
+              '${_result.pickupsCollected} × ${GameConfig.scorePerPickupCollected}',
+          points:
+              _result.pickupsCollected * GameConfig.scorePerPickupCollected,
         ),
         const SizedBox(height: 20),
         MenuButton(label: 'TEKRAR DENE', onPressed: widget.game.startGame),
@@ -84,6 +118,59 @@ class _GameOverOverlayState extends ConsumerState<GameOverOverlay> {
           onPressed: widget.game.goToMenu,
         ),
       ],
+    );
+  }
+}
+
+class _BreakdownRow extends StatelessWidget {
+  const _BreakdownRow({
+    required this.label,
+    required this.detail,
+    required this.points,
+  });
+
+  final String label;
+  final String detail;
+  final int points;
+
+  @override
+  Widget build(BuildContext context) {
+    // Kazanilmamis kalemler soluk gosterilir: oyuncu neyi kacirdigini gorur,
+    // bir sonraki oyunda denemeye tesvik olur.
+    final bool isEarned = points > 0;
+    final Color textColor = isEarned
+        ? const Color(0xCCFFFFFF)
+        : const Color(0x55FFFFFF);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(color: textColor, fontSize: 12),
+            ),
+          ),
+          Text(
+            detail,
+            style: TextStyle(color: textColor.withValues(alpha: 0.6), fontSize: 11),
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 46,
+            child: Text(
+              '+$points',
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: isEarned ? const Color(0xFF7DEAFF) : textColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
