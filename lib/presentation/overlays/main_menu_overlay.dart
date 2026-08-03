@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/score_entry.dart';
 import '../../game/marsky_game.dart';
 import '../providers/score_providers.dart';
+import 'widgets/how_to_play.dart';
 import 'widgets/overlay_panel.dart';
 import 'widgets/sound_toggle_button.dart';
 
@@ -40,20 +41,10 @@ class MainMenuOverlay extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         _RecentScores(history: history),
+        const HowToPlay(),
         const SizedBox(height: 20),
         MenuButton(label: 'BAŞLA', onPressed: game.startGame),
-        const SizedBox(height: 4),
         const SoundToggleButton(),
-        const SizedBox(height: 4),
-        const Text(
-          'Gemiyi hareket ettirmek için ekranı sürükle.\nAteş otomatiktir.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Color(0x77FFFFFF),
-            fontSize: 11,
-            height: 1.5,
-          ),
-        ),
       ],
     );
   }
