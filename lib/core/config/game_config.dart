@@ -19,6 +19,16 @@ abstract final class GameConfig {
   static const double designWidth = 480;
   static const double designHeight = 800;
 
+  // ------------------------------------------------------------- arka plan
+  /// Yildiz katmanlarinin temel kayma hizi (piksel/saniye, +y = asagi).
+  /// Yildizlar asagi kayar -> geminin yukari uctugu hissi olusur.
+  static const double starfieldBaseVelocity = 22;
+
+  /// Katmanlar arasi hiz carpani. Yakin katman uzak katmandan bu kat hizli
+  /// kayar -> derinlik (parallax) hissi. 1.0 olsa katmanlar ayni hizda kayar
+  /// ve parallax etkisi kaybolurdu.
+  static const double starfieldLayerDelta = 2.2;
+
   // ---------------------------------------------------------------- oyuncu
   static const double playerWidth = 48;
   static const double playerHeight = 48;
