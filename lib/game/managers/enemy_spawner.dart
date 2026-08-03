@@ -41,6 +41,13 @@ class EnemySpawner extends Component with HasGameReference<MarskyGame> {
   @override
   void update(double dt) {
     super.update(dt);
+
+    // Ana menude ve oyun bitti ekraninda dusman olusmaz. Motor calismaya devam
+    // ettigi icin (yildizlar kaysin diye) bu kontrol gereklidir.
+    if (!game.isPlaying) {
+      return;
+    }
+
     _elapsed += dt;
     _countdown -= dt;
     if (_countdown > 0) {

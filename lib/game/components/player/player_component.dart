@@ -54,6 +54,12 @@ class PlayerComponent extends SpriteComponent
 
   /// Hedefi [delta] kadar oteler ve oyun alani icinde tutar.
   void nudge(Vector2 delta) {
+    // Menude/duraklatilmisken surukleme yok sayilir. Aksi halde duraklatma
+    // sirasinda yapilan surukleme hedefi kaydirir ve devam edildiginde gemi
+    // aniden ziplar.
+    if (!game.isPlaying) {
+      return;
+    }
     _target.add(delta);
     _clampTargetToScreen();
   }
@@ -110,6 +116,10 @@ class PlayerComponent extends SpriteComponent
   }
 
   void _updateFiring(double dt) {
+    // Ana menude gemi ates etmez.
+    if (!game.isPlaying) {
+      return;
+    }
     _fireCooldown -= dt;
     if (_fireCooldown > 0) {
       return;

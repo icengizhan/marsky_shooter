@@ -14,6 +14,7 @@ import 'components/player/player_component.dart';
 import 'components/projectile/bullet_component.dart';
 import 'input/drag_input_component.dart';
 import 'managers/enemy_spawner.dart';
+import 'state/game_overlays.dart';
 import 'state/game_phase.dart';
 import 'state/game_score.dart';
 
@@ -50,9 +51,10 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
   /// Anlik skor. HUD bunu `ValueListenableBuilder` ile dinler.
   final GameScore score = GameScore();
 
-  /// Oyunun bulundugu durum. Overlay'ler bunu dinleyerek gorunur/gizlenir.
+  /// Oyunun bulundugu durum. Overlay'ler bunu takip ederek degisir.
+  /// Oyun ana menude baslar (case PDF §2.B).
   final ValueNotifier<GamePhase> phase = ValueNotifier<GamePhase>(
-    GamePhase.playing,
+    GamePhase.menu,
   );
 
   PlayerComponent? _player;
@@ -61,6 +63,10 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
   /// Oyuncu henuz yuklenmemis olabilecegi icin nullable dondurulur.
   /// Spawner dusman yonunu hesaplamak icin bunu kullanir.
   PlayerComponent? get playerOrNull => _player;
+
+  /// Component'ler "su an oynaniyor mu" sorusunu buradan sorar.
+  /// Ates ve dusman olusturma yalnizca bu `true` iken calisir.
+  bool get isPlaying => phase.value == GamePhase.playing;
 
   /// FlameGame.backgroundColor() (Flame — src/game/game.dart)
   @override
@@ -102,22 +108,61 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
     // geri cagri (callback) olarak verilir -- girdi katmani oyuncunun ic
     // yapisini bilmez, yalnizca "su kadar otele" der.
     world.add(DragInputComponent(onPanDelta: player.nudge));
+
+    // Durum degistikce dogru overlay gosterilir. Overlay yonetimi tek bir
+    // yerde toplanir; her buton kendi basina overlay eklemeye/kaldirmaya
+    // calissa tutarsiz durumlar (ornegin hem pause hem game over ekrani)
+    // olusabilirdi.
+    phase.addListener(_syncOverlays);
+    _syncOverlays();
+  }
+
+  void _syncOverlays() {
+    overlays.clear();
+    switch (phase.value) {
+      case GamePhase.menu:
+        overlays.add(GameOverlays.mainMenu);
+      case GamePhase.playing:
+        overlays.add(GameOverlays.hud);
+      case GamePhase.paused:
+        // HUD gorunur kalir: oyuncu duraklatirken skorunu gormeye devam eder.
+        overlays.add(GameOverlays.hud);
+        overlays.add(GameOverlays.pause);
+      case GamePhase.gameOver:
+        overlays.add(GameOverlays.gameOver);
+    }
   }
 
   @override
   void update(double dt) {
     super.update(dt);
     // Skor yalnizca aktif oynanista artar; menude veya duraklatilmisken artmaz.
-    if (phase.value == GamePhase.playing) {
+    if (isPlaying) {
       score.addSurvivalTime(dt);
     }
+  }
+
+  /// Ana menuden veya oyun bitti ekranindan yeni oyun baslatir.
+  void startGame() {
+    _resetScene();
+    phase.value = GamePhase.playing;
+    resumeEngine();
+  }
+
+  /// Oyunu birakip ana menuye doner.
+  void goToMenu() {
+    _resetScene();
+    phase.value = GamePhase.menu;
+    // Menude motor CALISIR: yildizlar kaymaya devam eder, menu olu gorunmez.
+    // Ates ve spawn `isPlaying` uzerinden kapali oldugu icin oynanis islemez.
+    resumeEngine();
   }
 
   /// Oyuncu bir dusmana carptiginda [PlayerComponent] tarafindan cagrilir.
   void handlePlayerHit() {
     // Ayni karede birden fazla dusmana carpilabilir; ilk carpismadan sonra
     // durum degistigi icin sonrakiler yok sayilir.
-    if (phase.value != GamePhase.playing) {
+    if (!isPlaying) {
       return;
     }
     audio.playExplosion();
@@ -139,8 +184,8 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
     }
   }
 
-  /// Oyunu bastan baslatir: sahneyi temizler, sayaclari sifirlar.
-  void restart() {
+  /// Sahneyi bosaltir ve sayaclari sifirlar.
+  void _resetScene() {
     // Kalan dusman ve mermiler temizlenmezse yeni oyun, onceki oyunun
     // ekrandaki nesneleriyle baslar -- sik yapilan bir hata.
     for (final EnemyComponent enemy in world.children
@@ -157,14 +202,13 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
     _player?.resetToStart();
     _spawner?.reset();
     score.reset();
-    phase.value = GamePhase.playing;
-    resumeEngine();
   }
 
   @override
   void onRemove() {
-    // ValueNotifier'lar elle serbest birakilir; aksi halde dinleyiciler
-    // bellekte kalir (bellek sizintisi).
+    // Dinleyici ve ValueNotifier'lar elle serbest birakilir; aksi halde
+    // bellekte kalirlar (bellek sizintisi).
+    phase.removeListener(_syncOverlays);
     score.dispose();
     phase.dispose();
     super.onRemove();
