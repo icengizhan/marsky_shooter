@@ -8,7 +8,21 @@ MARSKY şirketi için Bilgisayar Mühendisi pozisyonu teknik değerlendirme case
 
 ---
 
-## Mevcut Durum (son güncelleme: 3 Ağustos 2026)
+## Mevcut Durum (son güncelleme: 3 Ağustos 2026, 23:10)
+
+> **ÖZET: Case gereksinimlerinin tamamı karşılandı.** 32 commit, 53 test geçiyor,
+> `flutter analyze` sıfır uyarı, README + ARCHITECTURE.md yazıldı, release APK (45 MB)
+> emülatörde doğrulandı. **Kalan tek zorunlu iş: 6 Ağustos'ta `okanaktas`'ı GitHub'da
+> Collaborator olarak eklemek.**
+>
+> Zorunlu olmayan, istenirse yapılabilecekler: oynanış GIF'i (README'ye, en yüksek getirili),
+> patlama animasyonu / ekran titremesi, overlay'ler için widget testleri.
+>
+> Emülatörde gerçek oyun oynanarak doğrulanan davranışlar: menü → oynanış → duraklat →
+> oyun bitti geçişleri, kalıcı yüksek skor + skor geçmişi (uygulama yeniden açıldığında
+> okunuyor), skor kırılımı, ses ayarı.
+
+### Detaylı faz geçmişi
 
 **Bitti:**
 - **Faz 0** — Ortam: Flutter 3.44.8, Android SDK 36, AVD `marsky_pixel7`, `flutter doctor`
