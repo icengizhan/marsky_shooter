@@ -57,6 +57,18 @@ abstract final class GameConfig {
   static const double enemySpeedMin = 70;
   static const double enemySpeedMax = 140;
 
+  /// Dusmanin nisan sapmasi (radyan, +/-). ~20 derece.
+  ///
+  /// NEDEN SIFIR DEGIL: sapma olmadan her dusman oyuncuyu KUSURSUZ nisanlar.
+  /// Mermiler de oyuncudan duz yukari cikitigi icin her dusman kendiliginden
+  /// mermi hattina girer -- oldurmek beceri gerektirmez, bedava olur.
+  /// Gercek oynanis olcumu bunu dogruladi: 55 saniyede 60 dusman oldu ve skorun
+  /// %88'i buradan geldi.
+  ///
+  /// Sapma ile dusmanlar acili gelir: oyuncunun vurmak icin yatayda hizalanmasi
+  /// gerekir ve bir kismi kacar. Hem nisan almak hem kacinmak beceri olur.
+  static const double enemyAimSpread = 0.35;
+
   // ------------------------------------------------------- toplanabilir nesne
   static const double pickupWidth = 32;
   static const double pickupHeight = 32;
@@ -86,15 +98,27 @@ abstract final class GameConfig {
   static const double spawnIntervalFloor = 0.25;
 
   // ---------------------------------------------------------------- skor
+  // Puan degerleri gercek oynanis olcumuyle dengelendi.
+  //
+  // Ilk degerler (1 / 10 / 25) ile olculen 55 saniyelik bir oyunda skorun
+  // %88'i dusman oldurmekten geliyordu (60 dusman = 600 puan; hayatta kalma
+  // yalnizca 55, elmas 25). Sebep tasarimin dogal sonucu: dusmanlar oyuncuya
+  // dogru geldigi, mermiler de oyuncudan duz yukari cikti icin her dusman
+  // kendiliginden mermi hattina giriyor -- oldurmek neredeyse bedava.
+  //
+  // Yeni degerlerle ayni oyun: hayatta kalma 550, dusman 550, elmas 300.
+  // Uc kaynak da anlamli agirlikta.
+
   /// Hayatta kalinan her saniye icin puan.
-  static const int scorePerSecond = 1;
+  static const int scorePerSecond = 10;
 
   /// Vurulan her dusman icin puan.
   static const int scorePerEnemyKilled = 10;
 
-  /// Toplanan her nesne icin puan. Dusman oldurmekten daha degerli, cunku
-  /// nesneyi almak icin oyuncunun risk alip konumundan sapmasi gerekir.
-  static const int scorePerPickupCollected = 25;
+  /// Toplanan her nesne icin puan. En degerli kaynak, cunku elmasi almak icin
+  /// oyuncunun guvenli konumundan sapip dusmanlarin arasina girmesi gerekir --
+  /// tek gercek risk/odul kararidir.
+  static const int scorePerPickupCollected = 100;
 
   // ---------------------------------------------------------------- kalicilik
   /// Skor gecmisinde saklanacak en fazla kayit sayisi.
