@@ -21,14 +21,24 @@ MARSKY şirketi için Bilgisayar Mühendisi pozisyonu teknik değerlendirme case
   `ScoreRepositoryImpl`), `game/marsky_game.dart` (boş uzay tuvali),
   `app/marsky_app.dart` (`GameWidget.controlled`). 2 test geçiyor, web derleniyor.
 
+- **Faz 3** — Asset pipeline: `tools/generate_assets.ps1` ile ÖZGÜN sprite ve sesler
+  üretiliyor (3. parti telif yok). `GameAssets` sabitleri + `onLoad()` içinde tek seferlik
+  `images.loadAll()` / `audio.preload()`.
+- **Faz 4** — Sabit çözünürlüklü kamera (480x800, viewfinder `topLeft`), parallax yıldız
+  arka planı, `DragInputComponent` (ekranın her yerinden sürükleme), `PlayerComponent`
+  (yumuşak takip + otomatik ateş), `BulletComponent`, `EnemyComponent` (oyuncuya doğru),
+  `EnemySpawner` + `DifficultyCurve`, enjekte edilebilir `GameAudio`.
+- **Faz 5** — Hitbox çarpışma (`active`/`passive` + `isSolid`), `GamePhase`, `GameScore`,
+  `handlePlayerHit` / `togglePause` / `restart`. **16 test geçiyor.**
+
 **Sıradaki:**
-- **Faz 3** — Asset pipeline: `assets/images` + `assets/audio`, `pubspec.yaml`'a assets
-  bölümü, `onLoad()` içinde `images.loadAll()` / `FlameAudio.audioCache.loadAll()`.
-- **Faz 4** — `PlayerComponent` (drag), `EnemyComponent`, `BulletComponent`,
-  `SpawnManager`, parallax arka plan.
-- **Faz 5** — Hitbox çarpışma (`active`/`passive` ayrımı).
-- **Faz 6** — Oyun durumları + 4 overlay. **Faz 7** — Riverpod + kalıcı skor.
-- **Faz 8** — Testler. **Faz 9** — README + ARCHITECTURE.md + GIF + APK.
+- **Faz 6** — 4 overlay (ana menü / HUD / pause / game over), `game.overlays` ile;
+  `phase` ValueNotifier'ını dinleyecekler. Menü durumu şu an atlanmış — oyun doğrudan
+  `playing` ile başlıyor, Faz 6 bunu düzeltecek.
+- **Faz 7** — Riverpod provider'ları (yüksek skor, ses ayarı, skor geçmişi) +
+  `ScoreRepositoryImpl` bağlantısı.
+- **Faz 8** — Test kapsamını genişlet (spawner, drag input, repository + mocktail).
+- **Faz 9** — README + ARCHITECTURE.md (PDF madde eşlemesi) + oynanış GIF + release APK.
 - **Teslim günü (6 Ağu)** — `okanaktas` collaborator olarak eklenecek.
 
 ⚠️ Git CLI'dan push kimlik doğrulaması gerektiriyor. Bir kez kendi terminalinde
@@ -79,6 +89,15 @@ Bu bölüm `ARCHITECTURE.md`'ye de yansır — mülakatta savunulacak cevaplard�
    game over. Oynanışta asla.
 4. **Çarpışma yalnızca Flame hitbox'ları ile.** Manuel `if (x1 < x2 + w2 && ...)` kesişim
    matematiği yasak — PDF açıkça bunu yasaklıyor.
+   ⚠️ **Her hitbox `isSolid: true` olmalı.** Flame'in varsayılanı `false` ve şekli "içi boş
+   halka" gibi ele alır: çarpışma yalnızca **kenarlar kesiştiğinde** bulunur. Küçük mermi
+   hitbox'ı düşman dairesinin tamamen içine girdiğinde hiçbir kenar kesişmez ve **isabet
+   sessizce kaybolur**. `isSolid` kapsanma durumunu da çarpışma sayar
+   (bkz. `flame/src/geometry/shape_intersections.dart:85`). Bu, canlı olarak yaşandı ve
+   `test/game/collision_test.dart` içinde regresyon testi var — o testi silme.
+5. **Çarpışma tipleri:** hareket eden/isabet arayan taraf `active`, yalnızca vurulan taraf
+   `passive`. Düşmanlar `passive` — birbirlerini kontrol etmezler, aksi halde N düşman için
+   her karede ~N²/2 gereksiz çift taranır.
 5. **`update(dt)` içinde hareket her zaman `dt` ile çarpılır.** Aksi hâlde oyun cihazın
    FPS'ine göre farklı hızda çalışır.
 6. **Asset'ler yalnızca bir kez yüklenir** — `MarskyGame.onLoad()` içinde `images.loadAll()` /
