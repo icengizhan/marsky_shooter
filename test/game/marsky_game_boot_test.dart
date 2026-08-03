@@ -1,14 +1,12 @@
 import 'package:flame/components.dart';
 import 'package:flame_test/flame_test.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:marsky_shooter/game/audio/game_audio.dart';
 import 'package:marsky_shooter/game/components/player/player_component.dart';
 import 'package:marsky_shooter/game/input/drag_input_component.dart';
 import 'package:marsky_shooter/game/managers/enemy_spawner.dart';
 import 'package:marsky_shooter/game/marsky_game.dart';
 
-/// Testlerde ses platform kanali yoktur; sessiz uygulama enjekte edilir.
-MarskyGame createSilentGame() => MarskyGame(audio: SilentGameAudio());
+import '../helpers/test_game.dart';
 
 void main() {
   // Varlik yuklemesi (rootBundle) Flutter binding'i gerektirir; `testWithGame`
