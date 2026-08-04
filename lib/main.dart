@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/marsky_app.dart';
+import 'core/diagnostics/frame_report.dart';
 
 /// Giris noktasi. Bilincli olarak minimal tutuldu: burada is mantigi yoktur.
 ///
@@ -18,6 +19,10 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+
+  // Kare suresi olcumu: YALNIZCA profil modunda calisir, release'de kodun
+  // tamami elenir. "Performansli" iddiasini olculebilir kilar.
+  FrameReport.startIfProfileMode();
 
   // ProviderScope: Riverpod'un tum provider'lari bu kapsamda yasar.
   // Oyun disi state (yuksek skor, ses ayari, skor gecmisi) buradan akar.
