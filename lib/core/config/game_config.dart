@@ -153,6 +153,16 @@ abstract final class GameConfig {
   /// gorunmez ve oyuncu neden oldugunu anlamaz.
   static const double deathAnimationDuration = 0.55;
 
+  // ------------------------------------------------------------- havuz (pool)
+  /// Havuzda tutulacak en fazla mermi/dusman sayisi.
+  ///
+  /// Ust sinir olmadan havuz, oyunun gordugu EN YOGUN ana gore buyur ve o
+  /// bellegi bir daha geri vermez. Degerler ekranda ayni anda bulunabilecek
+  /// nesne sayisinin biraz uzerinde tutuldu: mermi ekrani ~1,5 saniyede gecer
+  /// ve saniyede ~4,5 atilir (~7 canli), dusman ~6-11 saniye yasar.
+  static const int bulletPoolMaxSize = 32;
+  static const int enemyPoolMaxSize = 48;
+
   // ---------------------------------------------------------------- kalicilik
   /// Skor gecmisinde saklanacak en fazla kayit sayisi.
   static const int maxScoreHistoryEntries = 10;

@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:flame/components.dart';
@@ -38,8 +39,14 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
   /// [audio] disaridan verilebilir (bagimlilik enjeksiyonu): testler
   /// `SilentGameAudio` gecerek platform kanali olmadan oyunu ayaga kaldirir.
   /// Uretimde varsayilan olarak gercek `flame_audio` uygulamasi kullanilir.
-  MarskyGame({GameAudio? audio})
+  /// [random] disaridan verilebilir: testler sabit tohumlu bir [Random]
+  /// gecirerek dusman/elmas olusumunu DETERMINISTIK hale getirir. Tohumsuz
+  /// `Random()` ile testler zaman zaman sansa bagli olarak kirilir (flaky) --
+  /// bu gercekten yasandi: duraklatma testinde tesadufi bir isabet skoru
+  /// artiriyordu.
+  MarskyGame({GameAudio? audio, Random? random})
     : audio = audio ?? FlameGameAudio(),
+      _random = random ?? Random(),
       super(
         // Sabit cozunurluklu kamera: oyun her ekran boyutunda AYNI oynanis
         // alanini gosterir. Aksi halde buyuk ekranda oyuncu daha fazla yer
@@ -53,8 +60,43 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
   /// Tum ses cagrilarinin gectigi tek kapi.
   final GameAudio audio;
 
+  /// Tum ureticiler bu ayni rastgele kaynagi paylasir; tek tohum tum oyunu
+  /// tekrarlanabilir kilar.
+  final Random _random;
+
   /// Anlik skor. HUD bunu `ValueListenableBuilder` ile dinler.
   final GameScore score = GameScore();
+
+  /// Mermi geri donusum havuzu (object pool).
+  ///
+  /// NEDEN: mermi saniyede ~4,5 kez uretiliyor; bir dakikalik oyunda ~270
+  /// nesne olusup cope gidiyor. Havuz, ekrandan cikan mermiyi silmek yerine
+  /// kenara koyar ve sonraki ateste AYNI nesneyi yeniden kullanir; boylece
+  /// tahsis ve cop toplama yuku kare suresinden calmaz.
+  ///
+  /// Flame'in HAZIR [ComponentPool]'u kullanilir, elle havuz YAZILMAZ.
+  /// Flame'inki nesneyi otomatik geri alir ve bunu dogru sirayla yapar:
+  /// `component.mounted` tamamlanmasini bekler, SONRA `component.removed`
+  /// dinler. Elle yazilan bir havuzda en sinsi hata tam buradadir --
+  /// `removeFromParent()` kuyruga alindigi icin nesne henuz sokulmemisken
+  /// havuza konursa yeniden `add` edilir ve "zaten mount edilmis" hatasi olusur.
+  ///
+  /// ComponentPool (Flame — src/components/component_pool.dart)
+  final ComponentPool<BulletComponent> bulletPool =
+      ComponentPool<BulletComponent>(
+        factory: BulletComponent.new,
+        maxSize: GameConfig.bulletPoolMaxSize,
+      );
+
+  /// Dusman geri donusum havuzu.
+  final ComponentPool<EnemyComponent> enemyPool = ComponentPool<EnemyComponent>(
+    factory: EnemyComponent.new,
+    maxSize: GameConfig.enemyPoolMaxSize,
+  );
+
+  // NOT: `PickupComponent` BILINCLI olarak havuzlanmaz. 3,5-7 saniyede bir
+  // uretiliyor; kazanc olculemez seviyede kalir, karmasiklik ise gercek olur.
+  // Havuz yalnizca gercekten sik uretilen nesneler icin anlamlidir.
 
   /// Oyunun bulundugu durum. Overlay'ler bunu takip ederek degisir.
   /// Oyun ana menude baslar (case PDF §2.B).
@@ -131,8 +173,8 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
     world.add(player);
 
     _spawners
-      ..add(EnemySpawner())
-      ..add(PickupSpawner());
+      ..add(EnemySpawner(random: _random))
+      ..add(PickupSpawner(random: _random));
     await world.addAll(_spawners);
 
     // Girdi yakalayici en son eklenir. Oyuncunun `nudge` metodu dogrudan

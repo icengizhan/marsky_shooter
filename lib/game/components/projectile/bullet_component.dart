@@ -7,15 +7,30 @@ import '../../marsky_game.dart';
 import '../enemy/enemy_component.dart';
 
 /// Oyuncunun ates ettigi mermi. Yukari dogru sabit hizla gider.
+///
+/// GERI DONUSTURULUR: ekrandan cikan mermi silinmek yerine Flame'in
+/// `ComponentPool`una doner ve sonraki ateste yeniden kullanilir (bkz.
+/// `MarskyGame.bulletPool`). Bu yuzden [spawnPosition] zorunlu degildir --
+/// havuz nesneyi parametresiz uretir, ardindan [reset] ile konumlandirir.
+///
+/// Havuza geri verme isini Flame kendisi yapar; burada `onRemove` gerekmez.
 class BulletComponent extends SpriteComponent
     with HasGameReference<MarskyGame>, CollisionCallbacks {
-  BulletComponent({required Vector2 spawnPosition})
+  BulletComponent({Vector2? spawnPosition})
     : super(
-        position: spawnPosition,
+        position: spawnPosition ?? Vector2.zero(),
         size: Vector2(GameConfig.bulletWidth, GameConfig.bulletHeight),
         anchor: Anchor.center,
         priority: 5,
       );
+
+  /// Havuzdan alinan mermiyi yeni ates icin hazirlar.
+  ///
+  /// Yeniden kullanilan bir nesnede ONCEKI DURUM sizabilir; burada sifirlanmasi
+  /// gereken her sey aciktan yazilir.
+  void reset({required Vector2 spawnPosition}) {
+    position.setFrom(spawnPosition);
+  }
 
   /// Senkron `onLoad` (bilincli) -- gerekcesi `ExplosionComponent`'te anlatildi:
   /// asenkron `onLoad` yasam dongusu kuyrugunu geciktirir ve arkasindaki

@@ -12,10 +12,16 @@ import '../effects/explosion_component.dart';
 /// Her karede yeniden hedeflemek yerine bunun secilmesi bilinclidir:
 /// (1) oyuncu kacabilir, yoksa dusman kacinilmaz sekilde takip eder ve oyun
 /// adil olmaz, (2) davranis deterministik olur, testte dogrulanabilir.
+///
+/// GERI DONUSTURULUR: ekrandan cikan veya vurulan dusman silinmek yerine
+/// Flame'in `ComponentPool`una doner (bkz. `MarskyGame.enemyPool`). Bu yuzden
+/// constructor parametreleri zorunlu degildir -- havuz nesneyi parametresiz
+/// uretir, ardindan [reset] cagrilir.
 class EnemyComponent extends SpriteComponent with HasGameReference<MarskyGame> {
-  EnemyComponent({required Vector2 spawnPosition, required this.velocity})
-    : super(
-        position: spawnPosition,
+  EnemyComponent({Vector2? spawnPosition, Vector2? velocity})
+    : velocity = velocity ?? Vector2.zero(),
+      super(
+        position: spawnPosition ?? Vector2.zero(),
         size: Vector2(GameConfig.enemyWidth, GameConfig.enemyHeight),
         anchor: Anchor.center,
         priority: 6,
@@ -23,9 +29,22 @@ class EnemyComponent extends SpriteComponent with HasGameReference<MarskyGame> {
 
   /// Saniyedeki yer degistirme (piksel/saniye). Olusma aninda hesaplanir,
   /// sonra degismez. Test bu degeri okuyarak yonu dogrulayabilir.
+  ///
+  /// `final` DEGIL cunku havuzdan yeniden kullanilirken [reset] ile guncellenir;
+  /// ancak vektorun KENDISI degistirilir (`setFrom`), referans degismez.
   final Vector2 velocity;
 
   bool _isDying = false;
+
+  /// Havuzdan alinan dusmani yeni bir dalis icin hazirlar.
+  ///
+  /// `_isDying` sifirlanmasi KRITIK: yeniden kullanilan bir dusman "olu"
+  /// isaretli kalirsa mermiler ona isabet etmez ve oyun sessizce bozulur.
+  void reset({required Vector2 spawnPosition, required Vector2 newVelocity}) {
+    position.setFrom(spawnPosition);
+    velocity.setFrom(newVelocity);
+    _isDying = false;
+  }
 
   /// Ayni karede iki merminin ayni dusmani vurup iki kez puan kazandirmasini
   /// engellemek icin kullanilir.

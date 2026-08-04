@@ -150,12 +150,15 @@ class PlayerComponent extends SpriteComponent
   }
 
   void _fire() {
+    // Mermi HAVUZDAN alinir, `new` ile uretilmez: saniyede ~4,5 mermi
+    // olustugu icin geri donusum tahsis/cop toplama yukunu ortadan kaldirir.
+    final BulletComponent bullet = game.bulletPool.acquire()
+      ..reset(spawnPosition: position - Vector2(0, size.y / 2));
+
     // Mermi oyuncunun DEGIL, oyuncunun ebeveyninin (dunyanin) cocugu olarak
     // eklenir. Oyuncunun cocugu olsaydi, oyuncu ile birlikte hareket eder ve
     // oyuncu yok edildiginde mermiler de aninda kaybolurdu.
-    parent?.add(
-      BulletComponent(spawnPosition: position - Vector2(0, size.y / 2)),
-    );
+    parent?.add(bullet);
     // Ses dogrudan FlameAudio'ya degil, oyunun ses kapisina gider. Boylece
     // mute ayari ve testlerde sessiz mod tek yerden yonetilir.
     game.audio.playShoot();

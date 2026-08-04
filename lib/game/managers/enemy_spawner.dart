@@ -50,8 +50,10 @@ class EnemySpawner extends IntervalSpawner {
           ((random.nextDouble() * 2) - 1) * GameConfig.enemyAimSpread,
     );
 
-    parent?.add(
-      EnemyComponent(spawnPosition: spawnPosition, velocity: velocity),
-    );
+    // Dusman HAVUZDAN alinir; `reset` onceki oyundan kalan durumu (konum, hiz,
+    // "olu" bayragi) temizler.
+    final EnemyComponent enemy = game.enemyPool.acquire()
+      ..reset(spawnPosition: spawnPosition, newVelocity: velocity);
+    parent?.add(enemy);
   }
 }
