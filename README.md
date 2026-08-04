@@ -57,7 +57,7 @@ flutter run -d <android-cihaz>   # hedef platform
 
 ```bash
 flutter analyze                  # statik analiz — sıfır uyarı olmalı
-flutter test                     # 67 test
+flutter test                     # tüm test paketi
 flutter build apk --release --split-per-abi   # teslim APK'ları (~16 MB / ABI)
 ```
 
@@ -113,15 +113,22 @@ Her maddenin kodda nerede karşılandığı ve **neden bu şekilde** yapıldığ
 **[ARCHITECTURE.md](ARCHITECTURE.md)** dosyasında madde madde eşlenmiştir. Özet:
 
 - ✅ Flame zorunlu — oynanışta tek bir Flutter widget'ı yok
-- ✅ Component mimarisi — oyun mantığı 12 ayrı sınıfa dağıtılmış, kök sınıf yalnızca kompozisyon yapar
+- ✅ Component mimarisi — oyun mantığı `game/` altında 17 sınıfa dağıtılmış, kök sınıf yalnızca kompozisyon yapar
 - ✅ Hitbox tabanlı çarpışma — `active`/`passive` ayrımı ile performanslı, sıfır manuel kesişim matematiği
 - ✅ Riverpod ile oyun dışı state yönetimi
 - ✅ Asset preload — `onLoad`'da bir kez, component'ler önbellekten okur
 - ✅ Clean Architecture + SOLID — katmanlar tek yönlü bağımlı, `domain/` framework bağımsız
-- ✅ 97 test, `flutter analyze` sıfır uyarı (strict-casts / strict-inference / strict-raw-types)
+- ✅ 104 test, `flutter analyze` sıfır uyarı (strict-casts / strict-inference / strict-raw-types)
+- ✅ Katman sınırları **testle** korunuyor — `domain/`'e Flutter import edilirse CI kırılır
 - ✅ Object pooling, eşzamanlı düşman üst sınırı ve kare süresi ölçümü — sayılar
   [ARCHITECTURE.md §7](ARCHITECTURE.md)'de
 
-`ARCHITECTURE.md` ayrıca geliştirme sırasında **ölçümle bulunan** dört gerçek problemi ve
-çözümlerini içerir (hitbox kapsanma hatası, sesin testi engellemesi, overlay bağımlılığı,
-puanın tek kaynaktan gelmesi).
+`ARCHITECTURE.md` §4 ayrıca geliştirme sırasında **ölçümle bulunan** on gerçek problemi ve
+çözümlerini içerir — hitbox'ların içi boş gelmesi, sesin oyunu test edilemez kılması, Android
+ses odağının çalınması, puanın %88'inin tek kaynaktan gelmesi, asenkron `onLoad`'ın senkron
+test döngüsünü kilitlemesi, testlerin kırılganlığı, widget testlerinin yakaladığı iki hata,
+açılıştaki beyaz parlama, skor kaydını kaybeden `dispose` yarışı ve gemi hareketinin kare
+hızına göre farklı davranması.
+
+Her biri **ölçümle** bulundu ve her birinin **kırmızıya döndüğü doğrulanmış** bir regresyon
+testi var — testlerin gerçekten ayırt ettiği, eski koda geri dönülüp sınanarak kontrol edildi.

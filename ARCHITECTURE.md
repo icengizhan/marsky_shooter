@@ -4,7 +4,7 @@ Bu doküman iki soruya cevap verir:
 1. Case PDF'indeki her teknik beklenti **kodda nerede** karşılandı?
 2. Alternatifler yerine **neden bu kararlar** verildi?
 
-`lib/` 40 dosya / 2.789 satır · `test/` 20 dosya / 1.774 satır · **92 test** · `flutter analyze` sıfır uyarı
+`lib/` 44 dosya / 2.939 satır · `test/` 22 dosya / 2.085 satır · **104 test** · `flutter analyze` sıfır uyarı
 
 ---
 
@@ -17,16 +17,20 @@ lib/
 │
 ├── core/                           → paylaşılan sabitler; iş mantığı yok
 │   ├── config/game_config.dart     → TÜM ayarlanabilir sayılar + tutarlılık assert'leri
-│   └── assets/game_assets.dart     → varlık adları (derleme zamanı güvenliği)
+│   ├── assets/game_assets.dart     → varlık adları (derleme zamanı güvenliği)
+│   └── diagnostics/frame_report.dart → kare süresi ölçümü (yalnızca profile derlemesi)
 │
 ├── domain/                         → SAF DART — ne Flame ne Flutter import eder
 │   ├── entities/score_entry.dart
-│   └── repositories/score_repository.dart      (abstract interface class = sözleşme)
+│   ├── repositories/score_repository.dart      (abstract interface class = sözleşme)
+│   └── repositories/settings_repository.dart   (ses ayarı sözleşmesi)
 │
 ├── data/                           → domain sözleşmelerinin uygulamaları
 │   ├── datasources/key_value_store.dart        (ince soyutlama, saf Dart)
 │   ├── datasources/shared_prefs_key_value_store.dart
-│   └── repositories/score_repository_impl.dart
+│   ├── datasources/storage_keys.dart           → disk anahtarları tek yerde
+│   ├── repositories/score_repository_impl.dart
+│   └── repositories/settings_repository_impl.dart
 │
 ├── game/                           → Flame dünyası; Riverpod'u ve UI'ı BİLMEZ
 │   ├── marsky_game.dart            → kompozisyon kökü + durum geçişleri + havuzlar
@@ -84,7 +88,7 @@ oyun motorunu ve iş mantığını platform kanalı kurmadan çalıştırabilmem
 | **Durum yönetimi: Bloc/Riverpod/Provider.** Oyun dışı UI state'leri (ses ayarları, skor geçmişi). | `lib/presentation/providers/` | **Riverpod 3.4.2.** Üç provider: yüksek skor, skor geçmişi, ses ayarı — üçü de diskte kalıcı. Oyun **içi** skor ise `ValueNotifier`'da (§3.2). |
 | **Asset yönetimi: preload, tekrarlı yükleme yok.** | `marsky_game.dart` (`onLoad`), `game_assets.dart` | `images.loadAll()` + `audio.preload()` oyun başında **bir kez**. Component'ler `images.fromCache(...)` ile önbellekten okur — hiçbir component `onLoad`'unda dosyadan yükleme yapmaz. |
 | **Performanslı olması** | `marsky_game.dart`, `enemy_spawner.dart` | Üç yapısal karar: `active`/`passive` çarpışma ayrımı, **object pooling** (§3.5), eşzamanlı düşman üst sınırı (§3.7). Ayrıca ekran dışına çıkan her nesne ağaçtan çıkarılır. |
-| **Clean Architecture + SOLID, test edilebilir yapı.** | tüm ağaç + `test/` | Katmanlar yukarıda. `domain/` framework bağımsız. Ses, rastgelelik ve depo constructor'dan enjekte edilir. **92 test** geçiyor. |
+| **Clean Architecture + SOLID, test edilebilir yapı.** | tüm ağaç + `test/` | Katmanlar yukarıda. `domain/` framework bağımsız. Ses, rastgelelik ve depo constructor'dan enjekte edilir. Test stratejisi → §5. |
 
 ### Case PDF §2 — Oyun gereksinimleri
 
@@ -322,14 +326,69 @@ yan etkisidir, gerçek oyunda duraklatıldığında `update` hiç çağrılmaz.
 `launch_background.xml`, `drawable-v21` varyantı, `NormalTheme` pencere zemini ve `web/index.html`.
 Biri atlanırsa parlama başka bir aşamada geri geliyordu. Ölçüm: %94 → **%0,1**.
 
+### 4.9 `dispose` yarışı oyuncunun rekorunu siliyordu
+
+**Belirti:** Yok — ve problem tam olarak buydu. Hata sessizdi.
+
+**Sebep:** Skoru kalıcı kaydeden `_persistResult()`, yüksek skoru diskten okumak için
+`await` ediyor, **sonra** `ref` üzerinden kayıt yapıyordu. Soğuk açılışta okuma birkaç on
+milisaniye sürer; oyuncu o arada "TEKRAR DENE"ye basarsa overlay ağaçtan çıkar ve
+`await` sonrası `ref` kullanımı Riverpod tarafından reddedilir. Çağrı `unawaited` olduğu
+için fırlatılan hata **hiçbir yerde yakalanmıyordu**: ne çökme, ne log, ne uyarı — skor
+sadece kaydolmuyordu.
+
+**Nasıl bulundu:** Sahte depoya (`InMemoryKeyValueStore`) yapay okuma gecikmesi eklendi.
+Sıfır gecikmeli sahte depo bu yarışı yapısal olarak gizliyordu; gecikme eklenince test ilk
+denemede kırmızıya döndü ve `expected <10>, actual <null>` ile veri kaybını doğrudan gösterdi.
+
+**Çözüm:** Tüm `ref` erişimleri ilk `await`ten **önce** yapılıyor. Notifier'lar
+`ProviderContainer` içinde yaşadığı için (autoDispose değiller) referansları önden almak
+yeterli: overlay yok olsa bile kayıt tamamlanır.
+
+**Ders:** Sahte nesnenin gerçekten hızlı olması bir kolaylık değil, bir **kör noktadır**.
+Asenkronluğu taklit etmeyen test double'ı, asenkron hataları da taklit etmez.
+
+### 4.10 Gemi hareketi kare hızına göre farklı davranıyordu
+
+**Belirti:** Kod yorumu "`dt` ile çarpıldığı için FPS'ten bağımsızdır" diyordu. Denetimde bu
+iddia sınandı ve **yanlış çıktı.**
+
+**Sebep:** Üstel yumuşatmanın yaygın yazımı `t = hız * dt`, gerçek çözümün yalnızca **birinci
+mertebe yaklaşımıdır.** `hız = 18` ile 60 FPS'te `t = 0,30` çıkarken 20 FPS'te `t = 0,90`
+oluyordu — yavaş cihazda gemi parmağa çok daha sert yapışıyor, yani **oynanış hissi cihaza
+göre değişiyordu.** `dt` ile çarpmak tek başına FPS bağımsızlığı garanti etmez; yalnızca
+doğrusal hareketlerde (mermi, düşman) yeterlidir.
+
+**Ölçüm:** Aynı sürükleme, aynı süre (0,1 sn), iki kare hızı → **15,2 piksel** fark.
+
+**Çözüm:** `t = 1 - exp(-hız * dt)`. Bu biçim tam olarak FPS bağımsızdır, çünkü
+`(e^-0,3)^6 = (e^-0,9)^2 = e^-1,8` — kaç karede kat edildiği sonucu değiştirmez. `clamp(0,1)`
+da gereksiz hâle gelir: sonuç doğal olarak `[0, 1)` aralığındadır, dolayısıyla kare
+atlamasında hedefi aşma (overshoot) matematiksel olarak imkânsızdır.
+
+**Regresyon testi:** `gameplay_behaviour_test.dart` aynı hareketi 60 ve 20 FPS'te koşup
+sonuçların yarım pikselden az farkla eşleşmesini şart koşar. Test boş bir güvence değil:
+eski formülle geri alınıp koşulduğunda **15,2 piksel farkla kırmızıya döndüğü doğrulandı.**
+
 ---
 
 ## 5. Test Stratejisi
 
-`flutter test` → **92 test**, `flutter analyze` → sıfır uyarı, `dart format` → temiz.
+`flutter test` → **104 test**, `flutter analyze` → sıfır uyarı, `dart format` → temiz.
 Üçü de her push'ta CI'da kapı olarak koşar (`.github/workflows/ci.yml`).
 
-Üç seviye:
+Dört seviye:
+
+**0. Mimari** (kaynak kodun kendisi denetlenir)
+
+| Dosya | Kapsam |
+|---|---|
+| `architecture/layer_boundaries_test.dart` | Katman sınırları **makine tarafından** zorlanır: `domain/` framework import edemez, `game/` Riverpod'u ve `presentation/`i tanıyamaz, `data/` oyun motorunu tanıyamaz, `core/` üst katmanı tanıyamaz |
+
+Bu seviyenin varlık sebebi: "Clean Architecture uyguladım" bir **iddiadır** ve katman ihlali
+derleme hatası vermez — `domain/` içine `package:flutter` eklemek sorunsuz derlenir, yalnızca
+mimari çürür. Doküman bunu tutamaz, test tutar. Kırmızı olduğunda hangi dosyanın hangi kuralı
+ihlal ettiğini isim isim söyler.
 
 **1. Saf mantık** (Flame/Flutter olmadan, düz unit test)
 
@@ -348,7 +407,7 @@ Biri atlanırsa parlama başka bir aşamada geri geliyordu. Ölçüm: %94 → **
 | `game/marsky_game_boot_test.dart` | `onLoad` component'leri bağlıyor mu, varlıklar önbellekte mi |
 | `game/collision_test.dart` | Mermi→düşman, oyuncu→düşman, **kapsanma regresyonu**, sahne temizliği |
 | `game/game_phase_test.dart` | Menüde ateş/spawn yok, duraklatmada skor durur, overlay senkronizasyonu |
-| `game/gameplay_behaviour_test.dart` | Sürükleme, mermi yaşam döngüsü, spawner davranışı |
+| `game/gameplay_behaviour_test.dart` | Sürükleme, mermi yaşam döngüsü, spawner davranışı, **60/20 FPS'te aynı hareket** (§4.10) |
 | `game/pickup_test.dart` | Toplama, çift sayım olmaması, ekran dışı temizlik, menüde üretim olmaması |
 | `game/death_sequence_test.dart` | Patlama oluşumu ve kendini temizlemesi, ölüm penceresi, **kameranın başlangıca dönmesi** |
 | `game/back_button_test.dart` | Kademeli geri: oynanış→duraklat→menü→çıkış |
@@ -361,7 +420,7 @@ Biri atlanırsa parlama başka bir aşamada geri geliyordu. Ölçüm: %94 → **
 |---|---|
 | `presentation/main_menu_overlay_test.dart` | Kayıtlı skor gösterimi, kural özeti, BAŞLA'nın oyunu başlatması, geçmiş listesi |
 | `presentation/hud_overlay_test.dart` | Skor metninin güncellenmesi, duraklat butonu |
-| `presentation/game_over_overlay_test.dart` | Döküm, **diske yazma**, rekor bildirimi, düşük skorun rekoru ezmemesi |
+| `presentation/game_over_overlay_test.dart` | Döküm, **diske yazma**, rekor bildirimi, düşük skorun rekoru ezmemesi, **`dispose` yarışında kaydın tamamlanması** (§4.9) |
 | `data/score_repository_impl_test.dart` | Repository mantığı (`mocktail` ile sahte depo) |
 
 Testleri mümkün kılan şey **bağımlılık enjeksiyonu**: ses (`GameAudio`), rastgelelik (`Random`) ve
