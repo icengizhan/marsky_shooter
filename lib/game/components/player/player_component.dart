@@ -100,7 +100,7 @@ class PlayerComponent extends SpriteComponent
     );
   }
 
-  /// CollisionCallbacks.onCollisionStart (Flame â€” src/collisions/collision_callbacks.dart)
+  /// CollisionCallbacks.onCollisionStart (Flame — src/collisions/collision_callbacks.dart)
   @override
   void onCollisionStart(
     Set<Vector2> intersectionPoints,
