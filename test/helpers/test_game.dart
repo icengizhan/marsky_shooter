@@ -1,5 +1,6 @@
 import 'package:flame/game.dart';
 import 'package:flutter/widgets.dart';
+import 'package:marsky_shooter/core/config/game_config.dart';
 import 'package:marsky_shooter/game/audio/game_audio.dart';
 import 'package:marsky_shooter/game/marsky_game.dart';
 import 'package:marsky_shooter/game/state/game_overlays.dart';
@@ -31,6 +32,18 @@ void advance(MarskyGame game, double seconds) {
   for (int i = 0; i < frames; i++) {
     game.update(frameSeconds);
   }
+}
+
+/// Oyuncuyu oldurur ve olum animasyonu penceresinin gecmesini bekler.
+///
+/// `handlePlayerHit()` ARTIK ANINDA "oyun bitti" durumuna gecmiyor: patlama ve
+/// ekran sarsintisi gorunebilsin diye [GameConfig.deathAnimationDuration]
+/// kadar bir pencere var (bkz. `MarskyGame.handlePlayerHit`). Testler bu
+/// pencereyi beklemezse `phase` hala `playing` gorunur.
+void killPlayerAndSettle(MarskyGame game) {
+  game.handlePlayerHit();
+  // Pencerenin bittiginden emin olmak icin kucuk bir pay eklenir.
+  advance(game, GameConfig.deathAnimationDuration + 0.1);
 }
 
 MarskyGame createSilentGame() {

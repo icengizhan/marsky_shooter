@@ -81,7 +81,7 @@ void main() {
     ) async {
       await game.ready();
       game.startGame();
-      game.handlePlayerHit();
+      killPlayerAndSettle(game);
       expect(game.phase.value, GamePhase.gameOver);
 
       game.pauseIfPlaying();

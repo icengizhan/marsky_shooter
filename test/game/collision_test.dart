@@ -1,6 +1,7 @@
 import 'package:flame/components.dart';
 import 'package:flame_test/flame_test.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:marsky_shooter/core/config/game_config.dart';
 import 'package:marsky_shooter/game/components/enemy/enemy_component.dart';
 import 'package:marsky_shooter/game/components/projectile/bullet_component.dart';
 import 'package:marsky_shooter/game/marsky_game.dart';
@@ -62,6 +63,18 @@ void main() {
 
       game.update(0.001);
 
+      // Carpisma aninda henuz "oyun bitti" gelmez: olum animasyonu penceresi
+      // boyunca motor calisir ki patlama ve sarsinti gorunebilsin.
+      expect(game.phase.value, GamePhase.playing);
+      expect(game.paused, isFalse, reason: 'efektler oynayabilmeli');
+      expect(
+        game.isPlaying,
+        isFalse,
+        reason: 'olum penceresinde oynanis mantigi durmus olmali',
+      );
+
+      advance(game, GameConfig.deathAnimationDuration + 0.1);
+
       expect(game.phase.value, GamePhase.gameOver);
       expect(game.paused, isTrue, reason: 'pauseEngine cagrilmis olmali');
     });
@@ -80,7 +93,7 @@ void main() {
       );
       await game.ready();
       game.score.addEnemyKill();
-      game.handlePlayerHit();
+      killPlayerAndSettle(game);
       expect(game.phase.value, GamePhase.gameOver);
 
       game.startGame();

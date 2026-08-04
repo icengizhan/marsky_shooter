@@ -1,5 +1,6 @@
 import 'package:flame_test/flame_test.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:marsky_shooter/core/config/game_config.dart';
 import 'package:marsky_shooter/game/components/enemy/enemy_component.dart';
 import 'package:marsky_shooter/game/components/projectile/bullet_component.dart';
 import 'package:marsky_shooter/game/marsky_game.dart';
@@ -120,7 +121,16 @@ void main() {
       );
 
       game.togglePause();
+      // Olum animasyonu penceresi boyunca HUD gorunur kalir; "oyun bitti"
+      // ekrani pencere bitince gelir.
       game.handlePlayerHit();
+      expect(
+        game.overlays.activeOverlays,
+        <String>[GameOverlays.hud],
+        reason: 'olum animasyonu sirasinda oyun bitti ekrani daha gelmemeli',
+      );
+
+      advance(game, GameConfig.deathAnimationDuration + 0.1);
       expect(game.overlays.activeOverlays, <String>[GameOverlays.gameOver]);
     });
   });
