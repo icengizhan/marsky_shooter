@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flame/game.dart';
 import 'package:flutter/widgets.dart';
 import 'package:marsky_shooter/core/config/game_config.dart';
@@ -34,6 +36,25 @@ void advance(MarskyGame game, double seconds) {
   }
 }
 
+/// [advance] gibi kare kare ilerletir, AMA her karenin ardindan olay dongusunun
+/// donmesine izin verir.
+///
+/// NEDEN GEREKLI: Flame'in `ComponentPool`u nesneyi `component.removed` Future'i
+/// tamamlaninca havuza geri verir. Tamamen senkron bir dongude Future'lar hic
+/// tamamlanmaz; havuz bos kalir ve "geri donusum calismiyor" gibi YANLIS bir
+/// olcum elde edilir. Gercek oyunda kareler arasinda olay dongusu dondugu icin
+/// bu sorun yoktur.
+///
+/// Yalnizca asenkron tamamlanmaya dayanan davranislari (havuz gibi) olcen
+/// testlerde kullanilir; digerleri icin [advance] daha hizlidir.
+Future<void> advanceAsync(MarskyGame game, double seconds) async {
+  final int frames = (seconds / frameSeconds).round();
+  for (int i = 0; i < frames; i++) {
+    game.update(frameSeconds);
+    await Future<void>.delayed(Duration.zero);
+  }
+}
+
 /// Oyuncuyu oldurur ve olum animasyonu penceresinin gecmesini bekler.
 ///
 /// `handlePlayerHit()` ARTIK ANINDA "oyun bitti" durumuna gecmiyor: patlama ve
@@ -46,8 +67,18 @@ void killPlayerAndSettle(MarskyGame game) {
   advance(game, GameConfig.deathAnimationDuration + 0.1);
 }
 
+/// Testlerin tekrarlanabilir olmasi icin SABIT tohum.
+///
+/// Tohumsuz `Random()` ile testler sansa bagli olarak kirilir. Bu gercekten
+/// yasandi: "duraklatilmisken skor artmaz" testi, duraklatma penceresinde
+/// tesadufi bir mermi isabeti olustugunda kiriliyordu.
+const int testRandomSeed = 20260804;
+
 MarskyGame createSilentGame() {
-  final MarskyGame game = MarskyGame(audio: SilentGameAudio());
+  final MarskyGame game = MarskyGame(
+    audio: SilentGameAudio(),
+    random: Random(testRandomSeed),
+  );
 
   for (final String overlayId in <String>[
     GameOverlays.mainMenu,

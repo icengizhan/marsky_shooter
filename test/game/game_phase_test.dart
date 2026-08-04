@@ -86,14 +86,24 @@ void main() {
       await game.ready();
       game.startGame();
       advance(game, 2);
-      final int scoreBeforePause = game.score.points.value;
+      final int survivalBeforePause = game.score.breakdown.survivalSeconds;
 
       game.togglePause();
-      // Motor durmus olsa da `update` elle cagrilirsa skor artmamali:
-      // koruma `phase` uzerinden, yalnizca motor durumuna guvenilmiyor.
+      // Motor durmus olsa da `update` ELLE cagrilirsa hayatta kalma puani
+      // islememeli: koruma `phase` uzerinden, yalnizca motor durumuna
+      // guvenilmiyor.
       advance(game, 3);
 
-      expect(game.score.points.value, scoreBeforePause);
+      // TOPLAM skora degil HAYATTA KALMA puanina bakilir: `advance()` update'i
+      // elle cagirdigi icin mermi/dusman hareketi ve dolayisiyla tesadufi bir
+      // isabet hala olusabilir. Bu test ortaminin bir yan etkisidir -- gercek
+      // oyunda duraklatildiginda `update` hic cagrilmaz. Toplam skora bakan
+      // eski hali bu yuzden sansa bagli olarak kiriliyordu.
+      expect(
+        game.score.breakdown.survivalSeconds,
+        survivalBeforePause,
+        reason: 'duraklatmada hayatta kalma puani islememeli',
+      );
     });
 
     testWithGame<MarskyGame>(
