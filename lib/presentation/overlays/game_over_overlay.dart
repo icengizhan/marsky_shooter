@@ -46,6 +46,22 @@ class _GameOverOverlayState extends ConsumerState<GameOverOverlay> {
   }
 
   Future<void> _persistResult() async {
+    // TUM `ref` ERISIMLERI ILK `await`TEN ONCE YAPILIR.
+    //
+    // `ref`, widget agactan ciktiktan sonra kullanilamaz; kullanilirsa Riverpod
+    // firlatir. Bu fonksiyon `unawaited` cagrildigi icin firlatilan hata hicbir
+    // yerde yakalanmaz: OYUNCUNUN REKORU SESSIZCE KAYBOLUR. Senaryo gercekti --
+    // soguk acilista yuksek skor diskten okunurken oyuncu "TEKRAR DENE"ye
+    // basarsa overlay dispose edilir ve kayit yarida kalir.
+    //
+    // Notifier'lar `ProviderContainer` icinde yasar (autoDispose degiller), bu
+    // yuzden referanslari simdi alinca overlay olse bile kayit tamamlanir.
+    // Regresyon testi: test/presentation/game_over_overlay_test.dart
+    final HighScoreNotifier highScore = ref.read(highScoreProvider.notifier);
+    final ScoreHistoryNotifier history = ref.read(
+      scoreHistoryProvider.notifier,
+    );
+
     // Rekor kontrolu GONDERMEDEN ONCE yapilir; gonderdikten sonra bakilirsa
     // yeni skor zaten rekor olmus olur ve karsilastirma anlamsizlasir.
     //
@@ -55,19 +71,21 @@ class _GameOverOverlayState extends ConsumerState<GameOverOverlay> {
     // sayilir ve HER SKOR yanlislikla "YENI REKOR" ilan edilir. Soguk acilista
     // oyuncu hemen olurse tam olarak bu yasanir. Widget testi bu hatayi
     // yakaladi (test/presentation/game_over_overlay_test.dart).
+    final Future<int> previousBestFuture = ref.read(highScoreProvider.future);
+
     int previousBest;
     try {
-      previousBest = await ref.read(highScoreProvider.future);
+      previousBest = await previousBestFuture;
     } on Object {
       // Okuma basarisiz olduysa rekor iddiasinda bulunmayiz.
       previousBest = _result.total;
     }
     final bool isRecord = _result.total > previousBest;
 
-    await ref.read(highScoreProvider.notifier).submit(_result.total);
-    await ref
-        .read(scoreHistoryProvider.notifier)
-        .append(ScoreEntry(points: _result.total, achievedAt: DateTime.now()));
+    await highScore.submit(_result.total);
+    await history.append(
+      ScoreEntry(points: _result.total, achievedAt: DateTime.now()),
+    );
 
     // `mounted` kontrolu: oyuncu kayit tamamlanmadan "tekrar dene"ye basmis
     // olabilir; o durumda widget artik agacta degildir.

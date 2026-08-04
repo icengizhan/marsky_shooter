@@ -113,6 +113,56 @@ void main() {
       );
     });
 
+    testWidgets(
+      'kayit ucustayken overlay kapanirsa skor gene de diske yazilir',
+      (WidgetTester tester) async {
+        // GERCEK HATA SENARYOSU: soguk acilista yuksek skor okumasi diskten
+        // gelirken oyuncu "TEKRAR DENE"ye basarsa bu overlay agactan cikar.
+        // Kayit fonksiyonu `await`ten SONRA `ref`e dokunuyorsa Riverpod
+        // "widget dispose edildikten sonra ref kullanildi" diye firlatir;
+        // hata `unawaited` icinde yutulur ve OYUNCUNUN REKORU KAYBOLUR.
+        final InMemoryKeyValueStore store = InMemoryKeyValueStore(
+          readDelay: const Duration(milliseconds: 40),
+        );
+        final MarskyGame game = createSilentGame();
+        game.score.addEnemyKill();
+
+        final ValueNotifier<bool> isOverlayVisible = ValueNotifier<bool>(true);
+        addTearDown(isOverlayVisible.dispose);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            // ProviderScope AYNI KALIR, yalnizca cocuk degisir: gercek
+            // uygulamada da kapsam GameScreen'in uzerindedir, overlay ile
+            // birlikte yok olmaz.
+            overrides: [keyValueStoreProvider.overrideWithValue(store)],
+            child: MaterialApp(
+              home: ValueListenableBuilder<bool>(
+                valueListenable: isOverlayVisible,
+                builder: (BuildContext _, bool isVisible, Widget? _) =>
+                    isVisible ? GameOverOverlay(game: game) : const SizedBox(),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        // Okuma henuz bitmedi; oyuncu ekrani kapatiyor.
+        isOverlayVisible.value = false;
+        await tester.pump();
+
+        // Gecikmeli okuma simdi tamamlanir.
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pumpAndSettle();
+
+        expect(
+          store.values[ScoreRepositoryImpl.highScoreKey],
+          GameConfig.scorePerEnemyKilled,
+          reason: 'ekran kapansa bile skor kaydi tamamlanmali',
+        );
+      },
+    );
+
     testWidgets('TEKRAR DENE yeni oyun baslatir', (WidgetTester tester) async {
       final MarskyGame game = await pumpGameOver(
         tester,
