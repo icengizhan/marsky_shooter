@@ -137,17 +137,24 @@ class StatRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
-          Text(
-            label,
-            style: const TextStyle(
-              color: Color(0x99FFFFFF),
-              fontSize: 12,
-              letterSpacing: 1.5,
-              fontWeight: FontWeight.w600,
+          // Expanded ZORUNLU: etiket sabit genislikte olsaydi uzun bir deger
+          // (ornegin 6 haneli bir skor) satiri tasirdi ve Flutter sari-siyah
+          // tasma seridi cizerdi. Widget testi bu hatayi yakaladi
+          // (test/presentation/game_over_overlay_test.dart).
+          Expanded(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0x99FFFFFF),
+                fontSize: 12,
+                letterSpacing: 1.5,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
+          const SizedBox(width: 12),
           Text(
             value,
             style: const TextStyle(

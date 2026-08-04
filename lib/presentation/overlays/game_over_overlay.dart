@@ -48,7 +48,20 @@ class _GameOverOverlayState extends ConsumerState<GameOverOverlay> {
   Future<void> _persistResult() async {
     // Rekor kontrolu GONDERMEDEN ONCE yapilir; gonderdikten sonra bakilirsa
     // yeni skor zaten rekor olmus olur ve karsilastirma anlamsizlasir.
-    final int previousBest = ref.read(highScoreProvider).value ?? 0;
+    //
+    // `.future` ile YUKLENMIS deger BEKLENIR, anlik `.value` okunmaz:
+    // yuksek skor diskten asenkron gelir. Bu ekran acildiginda okuma henuz
+    // bitmemis olabilir; o durumda `.value` null doner, `previousBest` 0
+    // sayilir ve HER SKOR yanlislikla "YENI REKOR" ilan edilir. Soguk acilista
+    // oyuncu hemen olurse tam olarak bu yasanir. Widget testi bu hatayi
+    // yakaladi (test/presentation/game_over_overlay_test.dart).
+    int previousBest;
+    try {
+      previousBest = await ref.read(highScoreProvider.future);
+    } on Object {
+      // Okuma basarisiz olduysa rekor iddiasinda bulunmayiz.
+      previousBest = _result.total;
+    }
     final bool isRecord = _result.total > previousBest;
 
     await ref.read(highScoreProvider.notifier).submit(_result.total);
