@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/datasources/key_value_store.dart';
+import '../../domain/repositories/settings_repository.dart';
 import 'app_providers.dart';
 
 /// Ses acik/kapali ayari (kalici).
@@ -8,22 +8,21 @@ import 'app_providers.dart';
 /// Case PDF §3 "Oyun dışı UI state'leri (ses ayarları, skor geçmişi vb.) için
 /// standart bir State Management çözümü" istiyor -- bu provider tam olarak o
 /// maddenin karsiligi. Deger degistiginde `GameScreen` bunu dinleyip oyunun
-/// [GameAudio] kapisina uygular; oyun motoru Riverpod'u hic bilmez.
+/// ses kapisina uygular; oyun motoru Riverpod'u hic bilmez.
+///
+/// Kalicilik [SettingsRepository] uzerinden yapilir; bu sinif hangi anahtarla
+/// veya hangi tipte saklandigini BILMEZ. Onceden `KeyValueStore`a dogrudan
+/// erisiliyordu ve bu, skorlar icin kullanilan repository desenini atliyordu.
 class SoundEnabledNotifier extends AsyncNotifier<bool> {
-  static const String _storageKey = 'marsky.sound_enabled';
-
   @override
-  Future<bool> build() async {
-    final KeyValueStore store = ref.watch(keyValueStoreProvider);
-    // Ilk kurulumda ses acik olsun.
-    return await store.readBool(_storageKey) ?? true;
-  }
+  Future<bool> build() =>
+      ref.watch(settingsRepositoryProvider).readSoundEnabled();
 
   Future<void> toggle() async {
     final bool next = !(state.value ?? true);
     // Once UI guncellenir (aninda tepki), sonra diske yazilir.
     state = AsyncValue<bool>.data(next);
-    await ref.read(keyValueStoreProvider).writeBool(_storageKey, next);
+    await ref.read(settingsRepositoryProvider).writeSoundEnabled(next);
   }
 }
 

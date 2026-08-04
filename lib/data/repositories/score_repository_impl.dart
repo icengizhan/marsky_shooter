@@ -4,6 +4,7 @@ import '../../core/config/game_config.dart';
 import '../../domain/entities/score_entry.dart';
 import '../../domain/repositories/score_repository.dart';
 import '../datasources/key_value_store.dart';
+import '../datasources/storage_keys.dart';
 
 /// [ScoreRepository] sozlesmesinin anahtar-deger deposu uzerindeki uygulamasi.
 ///
@@ -13,10 +14,9 @@ import '../datasources/key_value_store.dart';
 class ScoreRepositoryImpl implements ScoreRepository {
   ScoreRepositoryImpl(this._store);
 
-  /// Anahtarlar `marsky.` ile onekli: ayni cihazdaki baska uygulama
-  /// verileriyle ve ileride eklenecek ayar anahtarlariyla cakismasin.
-  static const String highScoreKey = 'marsky.high_score';
-  static const String historyKey = 'marsky.score_history';
+  /// Anahtarlar `StorageKeys` icinde toplanir; bkz. o dosyadaki gerekce.
+  static const String highScoreKey = StorageKeys.highScore;
+  static const String historyKey = StorageKeys.scoreHistory;
 
   final KeyValueStore _store;
 
