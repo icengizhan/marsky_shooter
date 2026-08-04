@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 
@@ -98,7 +100,7 @@ class PlayerComponent extends SpriteComponent
     );
   }
 
-  /// CollisionCallbacks.onCollisionStart (Flame — src/collisions/collision_callbacks.dart)
+  /// CollisionCallbacks.onCollisionStart (Flame â€” src/collisions/collision_callbacks.dart)
   @override
   void onCollisionStart(
     Set<Vector2> intersectionPoints,
@@ -129,10 +131,18 @@ class PlayerComponent extends SpriteComponent
   }
 
   void _followTarget(double dt) {
-    // Oransal yaklasma (exponential smoothing). `dt` ile carpildigi icin
-    // yumusama hizi FPS'ten bagimsizdir. clamp(0,1) buyuk `dt` degerlerinde
-    // (kare atlamasi) hedefi asmayi (overshoot) onler.
-    final double t = (GameConfig.playerFollowSpeed * dt).clamp(0.0, 1.0);
+    // Ustel yumusatma (exponential smoothing), TAM FPS-bagimsiz bicimiyle.
+    //
+    // Yaygin yazim `t = hiz * dt` seklindedir ve yalnizca YAKLASIK dogrudur:
+    // `hiz = 18` ile 60 FPS'te t = 0,30 cikarken 20 FPS'te t = 0,90 olur, yani
+    // kare hizi dustugunde gemi hedefe cok daha sert yapisir -- oynanis hissi
+    // cihaza gore degisir. `1 - exp(-hiz * dt)` ise ayni `hiz` degeri icin her
+    // kare hizinda AYNI gecici tepkiyi verir (0,26 ve 0,63; bir saniye sonunda
+    // kalan mesafe iki durumda da e^-18).
+    //
+    // clamp'e gerek kalmaz: `dt > 0` iken sonuc dogal olarak [0, 1) araligindadir,
+    // bu yuzden kare atlamasinda bile hedefi asma (overshoot) olusamaz.
+    final double t = 1 - exp(-GameConfig.playerFollowSpeed * dt);
     position += (_target - position) * t;
   }
 

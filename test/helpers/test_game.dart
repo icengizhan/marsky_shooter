@@ -7,20 +7,6 @@ import 'package:marsky_shooter/game/audio/game_audio.dart';
 import 'package:marsky_shooter/game/marsky_game.dart';
 import 'package:marsky_shooter/game/state/game_overlays.dart';
 
-/// Testler icin oyun ornegi kurar.
-///
-/// Iki sey uretim ortamindan farklidir ve ikisi de bilincli:
-///
-/// 1. **Sessiz ses.** Gercek `FlameGameAudio`, arka planda `path_provider`
-///    platform kanalini kullanir; unit test ortaminda bu kanal yoktur ve
-///    `MissingPluginException` atilir. [SilentGameAudio] enjekte edilir.
-///
-/// 2. **Overlay kayitlari.** Uretimde overlay widget'larini `GameWidget`in
-///    `overlayBuilderMap`i kaydeder. Unit testte `GameWidget` yoktur, bu yuzden
-///    oyun `overlays.add(...)` cagirdiginda Flame "Trying to add an unknown
-///    overlay" assert'i atar. Burada ayni kimlikler bos builder'larla
-///    kaydedilir -- assert guvenlik agi devrede kalir, yalnizca cizilecek
-///    widget bos olur.
 /// 60 FPS'te bir karenin suresi.
 const double frameSeconds = 1 / 60;
 
@@ -74,6 +60,35 @@ void killPlayerAndSettle(MarskyGame game) {
 /// tesadufi bir mermi isabeti olustugunda kiriliyordu.
 const int testRandomSeed = 20260804;
 
+/// Oyunu [seconds] saniye boyunca VERILEN kare hiziyla ilerletir.
+///
+/// [advance] her zaman 60 FPS varsayar. Kare hizindan bagimsizlik iddiasini
+/// sinamak icin ayni sureyi FARKLI `dt` degerleriyle kat etmek gerekir; bu
+/// yardimci tam bunun icin var.
+void advanceAtFps(MarskyGame game, double seconds, {required int fps}) {
+  final double dt = 1 / fps;
+  final int frames = (seconds * fps).round();
+  for (int i = 0; i < frames; i++) {
+    game.update(dt);
+  }
+}
+
+/// Testler icin oyun ornegi kurar.
+///
+/// Uc sey uretim ortamindan farklidir ve ucu de bilincli:
+///
+/// 1. **Sessiz ses.** Gercek `FlameGameAudio`, arka planda `path_provider`
+///    platform kanalini kullanir; unit test ortaminda bu kanal yoktur ve
+///    `MissingPluginException` atilir. [SilentGameAudio] enjekte edilir.
+///
+/// 2. **Sabit tohumlu rastgelelik.** Bkz. [testRandomSeed].
+///
+/// 3. **Overlay kayitlari.** Uretimde overlay widget'larini `GameWidget`in
+///    `overlayBuilderMap`i kaydeder. Unit testte `GameWidget` yoktur, bu yuzden
+///    oyun `overlays.add(...)` cagirdiginda Flame "Trying to add an unknown
+///    overlay" assert'i atar. Burada ayni kimlikler bos builder'larla
+///    kaydedilir -- assert guvenlik agi devrede kalir, yalnizca cizilecek
+///    widget bos olur.
 MarskyGame createSilentGame() {
   final MarskyGame game = MarskyGame(
     audio: SilentGameAudio(),

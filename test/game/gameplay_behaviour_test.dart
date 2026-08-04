@@ -105,6 +105,48 @@ void main() {
       },
     );
 
+    testWithGame<MarskyGame>(
+      'takip hareketi kare hizindan BAGIMSIZ ayni sonucu verir',
+      createSilentGame,
+      (MarskyGame game) async {
+        // Iddia: `1 - exp(-hiz * dt)` ustel yumusatmasi ayni SURE icinde ayni
+        // mesafeyi kat eder, kac karede kat edildigi onemli degildir.
+        //
+        // Neden kisa bir sure (0,1 sn) olculur: bir saniye sonunda her iki kare
+        // hizi da hedefe fiilen varmis olur ve test ayirt etme gucunu kaybeder.
+        // Gecici tepki (transient) yalnizca hareketin basinda gorunur.
+        //
+        // Yaygin `t = hiz * dt` yazimi bu testi GECEMEZ: 60 FPS'te kalan mesafe
+        // orani 0,7^6 = 0,118 iken 20 FPS'te 0,1^2 = 0,010 olur -- gemi yavas
+        // cihazda hedefe on kat daha sert yapisir.
+        const double travelSeconds = 0.1;
+        await game.ready();
+        final PlayerComponent player = game.playerOrNull!;
+
+        // `startGame()` gemiyi baslangic konumuna ve hedefini kendi uzerine
+        // sifirlar; iki kosu ayni noktadan baslar.
+        Vector2 positionAfter(int fps) {
+          game.startGame();
+          player.nudge(Vector2(100, -100));
+          advanceAtFps(game, travelSeconds, fps: fps);
+          return player.position.clone();
+        }
+
+        final Vector2 at60 = positionAfter(60);
+        final Vector2 at20 = positionAfter(20);
+
+        // Kayan nokta biriktirme payi: yarim pikselden az fark kabul edilir.
+        expect(
+          (at60 - at20).length,
+          lessThan(0.5),
+          reason:
+              '60 ve 20 FPS ayni sure sonunda ayni konumu vermeli; '
+              'aksi halde oynanis hissi cihaza gore degisir '
+              '(60 FPS: $at60, 20 FPS: $at20)',
+        );
+      },
+    );
+
     testWithGame<MarskyGame>('gemi ekran disina cikamaz', createSilentGame, (
       MarskyGame game,
     ) async {
