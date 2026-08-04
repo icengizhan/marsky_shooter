@@ -1,5 +1,7 @@
 # MARSKY — Flutter & Flame Case Çalışması
 
+[![CI](https://github.com/icengizhan/marsky_shooter/actions/workflows/ci.yml/badge.svg)](https://github.com/icengizhan/marsky_shooter/actions/workflows/ci.yml)
+
 Flutter ve **Flame** oyun motoruyla geliştirilmiş 2D top-down shooter.
 Tüm oynanış Flame Component System üzerinde çalışır; Flutter widget'ları yalnızca
 menü / HUD / duraklat / oyun bitti ekranlarında (`game.overlays`) kullanılır.

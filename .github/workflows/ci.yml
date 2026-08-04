@@ -1,0 +1,50 @@
+# Surekli entegrasyon (CI)
+#
+# NEDEN VAR: incelemeyi yapan kisinin testlerin gectigini gormek icin projeyi
+# klonlayip Flutter kurmasi gerekmez -- her push'ta bu is akisi calisir ve
+# sonucu repo sayfasinda yesil/kirmizi olarak gorunur.
+#
+# Iki kapi da zorunlu tutulur:
+#   flutter analyze  -> sifir uyari (analysis_options.yaml siki ayarli)
+#   flutter test     -> tum testler gecmeli
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Elle de tetiklenebilsin.
+  workflow_dispatch:
+
+jobs:
+  analyze-and-test:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+
+      - name: Flutter kurulumu
+        uses: subosito/flutter-action@v2
+        with:
+          # Projenin gelistirildigi surum. Sabit tutuluyor: "stable" kullanilsa
+          # Flutter yeni bir surum yayinladiginda CI beklenmedik sekilde
+          # kirilabilir ve hata koddan sanilir.
+          flutter-version: '3.44.8'
+          channel: stable
+          cache: true
+
+      - name: Bagimliliklar
+        run: flutter pub get
+
+      - name: Bicimlendirme kontrolu
+        # --set-exit-if-changed: bicimlendirilmemis dosya varsa CI kirilir.
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Statik analiz
+        run: flutter analyze
+
+      - name: Testler
+        run: flutter test --reporter expanded
