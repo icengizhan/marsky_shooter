@@ -17,8 +17,11 @@ class BulletComponent extends SpriteComponent
         priority: 5,
       );
 
+  /// Senkron `onLoad` (bilincli) -- gerekcesi `ExplosionComponent`'te anlatildi:
+  /// asenkron `onLoad` yasam dongusu kuyrugunu geciktirir ve arkasindaki
+  /// eklemeleri bekletir. Hitbox eklemek icin beklemeye gerek yoktur.
   @override
-  Future<void> onLoad() async {
+  void onLoad() {
     // DIKKAT: burada dosyadan yukleme YAPILMAZ. Sprite, oyun basinda
     // doldurulan onbellekten okunur. Aksi halde her ates ediste disk/ag
     // okumasi olur ve oyun kasardi.
@@ -27,7 +30,7 @@ class BulletComponent extends SpriteComponent
     // Mermi ince ve uzun oldugu icin dikdortgen hitbox dogru sekildir.
     // CollisionType.active: taramayi mermi baslatir, cunku hareket eden ve
     // isabet arayan taraf odur.
-    await add(
+    add(
       RectangleHitbox(
         size: size.clone(),
         position: Vector2.zero(),

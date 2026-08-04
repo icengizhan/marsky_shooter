@@ -4,6 +4,7 @@ import 'package:flame/components.dart';
 import '../../../core/assets/game_assets.dart';
 import '../../../core/config/game_config.dart';
 import '../../marsky_game.dart';
+import '../effects/explosion_component.dart';
 
 /// Ekranin ustunde olusup OYUNCUYA DOGRU inen dusman.
 ///
@@ -30,8 +31,9 @@ class EnemyComponent extends SpriteComponent with HasGameReference<MarskyGame> {
   /// engellemek icin kullanilir.
   bool get isDying => _isDying;
 
+  /// Senkron `onLoad` (bilincli) -- gerekcesi `ExplosionComponent`'te anlatildi.
   @override
-  Future<void> onLoad() async {
+  void onLoad() {
     sprite = Sprite(game.images.fromCache(GameAssets.enemy));
 
     // CircleHitbox: sprite bir elmas/yildiz seklinde oldugu icin daire,
@@ -48,7 +50,7 @@ class EnemyComponent extends SpriteComponent with HasGameReference<MarskyGame> {
     // hitbox'i dusman dairesinin tamamen icine girdiginde hicbir kenar
     // kesismez ve isabet KAYDEDILMEZ. `isSolid` ile kapsanma durumu da
     // carpisma sayilir (bkz. flame/src/geometry/shape_intersections.dart:85).
-    await add(
+    add(
       CircleHitbox(
         radius: size.x * 0.42,
         position: size / 2,
@@ -65,6 +67,16 @@ class EnemyComponent extends SpriteComponent with HasGameReference<MarskyGame> {
       return;
     }
     _isDying = true;
+
+    // Patlama dusmanin DEGIL, dunyanin cocugu olarak eklenir: dusman hemen
+    // agactan cikarildigi icin cocugu olsaydi patlama da aninda silinirdi.
+    parent?.add(
+      ExplosionComponent(
+        explosionPosition: position.clone(),
+        explosionRadius: GameConfig.enemyExplosionRadius,
+        explosionColor: GameConfig.enemyExplosionColor,
+      ),
+    );
     removeFromParent();
   }
 

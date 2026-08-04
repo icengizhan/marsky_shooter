@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flame/components.dart';
+import 'package:flame/effects.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
 
@@ -9,6 +10,7 @@ import '../core/config/game_config.dart';
 import 'audio/flame_game_audio.dart';
 import 'audio/game_audio.dart';
 import 'components/background/starfield_background.dart';
+import 'components/effects/explosion_component.dart';
 import 'components/enemy/enemy_component.dart';
 import 'components/pickup/pickup_component.dart';
 import 'components/player/player_component.dart';
@@ -66,13 +68,35 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
   /// sifirlama kodunun degismesini onler.
   final List<IntervalSpawner> _spawners = <IntervalSpawner>[];
 
+  /// Oyuncu oldu ama "oyun bitti" ekrani henuz gelmedi.
+  ///
+  /// Bu kisa pencere olmadan `pauseEngine()` carpisma aninda cagrilir ve
+  /// patlama/sarsinti efektleri HIC gorunmez; ekran birden donar, oyuncu neden
+  /// oldugunu anlamaz. Pencere boyunca oynanis mantigi (ates, spawn, skor)
+  /// durur ama motor calismaya devam eder ki efektler oynayabilsin.
+  bool _isDying = false;
+
+  /// Olum animasyonunun bitmesine kalan sure.
+  ///
+  /// NEDEN `TimerComponent` DEGIL: Flame'in `TimerComponent`'inin `onLoad`'i
+  /// asenkrondur (bkz. flame/src/components/timer_component.dart:48), yani
+  /// agaca eklenmesi bir olay dongusu turu gerektirir. Testler kareleri
+  /// senkron olarak ilerlettigi icin boyle bir component hic mount edilmez ve
+  /// olum gecisi test edilemez hale gelir. Duz bir sayac hem test edilebilir
+  /// hem de kodun geri kalaniyla (ates ve spawn sayaclari) tutarlidir.
+  double _deathCountdown = 0;
+
   /// Oyuncu henuz yuklenmemis olabilecegi icin nullable dondurulur.
   /// Spawner dusman yonunu hesaplamak icin bunu kullanir.
   PlayerComponent? get playerOrNull => _player;
 
   /// Component'ler "su an oynaniyor mu" sorusunu buradan sorar.
-  /// Ates ve dusman olusturma yalnizca bu `true` iken calisir.
-  bool get isPlaying => phase.value == GamePhase.playing;
+  /// Ates, dusman olusturma ve skor yalnizca bu `true` iken isler.
+  ///
+  /// Olum animasyonu penceresinde `phase` hala `playing` oldugu halde bu
+  /// `false` doner -- boylece oyuncu oldukten sonra skor artmaya devam etmez
+  /// ve yeni dusman olusmaz.
+  bool get isPlaying => phase.value == GamePhase.playing && !_isDying;
 
   /// FlameGame.backgroundColor() (Flame — src/game/game.dart)
   @override
@@ -143,6 +167,16 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
   @override
   void update(double dt) {
     super.update(dt);
+
+    // Olum animasyonu penceresi: efektler oynarken oynanis mantigi islemez.
+    if (_isDying) {
+      _deathCountdown -= dt;
+      if (_deathCountdown <= 0) {
+        _finishGameOver();
+      }
+      return;
+    }
+
     // Skor yalnizca aktif oynanista artar; menude veya duraklatilmisken artmaz.
     if (isPlaying) {
       score.addSurvivalTime(dt);
@@ -166,15 +200,61 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
   }
 
   /// Oyuncu bir dusmana carptiginda [PlayerComponent] tarafindan cagrilir.
+  ///
+  /// Iki asamali: once olum animasyonu oynar (patlama + ekran sarsintisi),
+  /// [GameConfig.deathAnimationDuration] sonra "oyun bitti" ekrani gelir.
   void handlePlayerHit() {
     // Ayni karede birden fazla dusmana carpilabilir; ilk carpismadan sonra
-    // durum degistigi icin sonrakiler yok sayilir.
+    // `isPlaying` false oldugu icin sonrakiler yok sayilir.
     if (!isPlaying) {
       return;
     }
+    _isDying = true;
+    _deathCountdown = GameConfig.deathAnimationDuration;
     audio.playExplosion();
+
+    final PlayerComponent? player = _player;
+    if (player != null) {
+      world.add(
+        ExplosionComponent(
+          explosionPosition: player.position.clone(),
+          explosionRadius: GameConfig.playerExplosionRadius,
+          explosionColor: GameConfig.playerExplosionColor,
+        ),
+      );
+      player.hideForDeath();
+    }
+    _shakeCamera();
+    // Geri sayim `update` icinde isler; bkz. [_deathCountdown].
+  }
+
+  void _finishGameOver() {
+    _isDying = false;
+    _deathCountdown = 0;
     phase.value = GamePhase.gameOver;
     pauseEngine();
+  }
+
+  /// Kisa ekran sarsintisi.
+  ///
+  /// `alternate: true` kritik: efekt ileri gidip GERI DONER, bu yuzden kamera
+  /// baslangic konumuna kendiliginden dogru gelir. Tek yonlu bir MoveEffect
+  /// kullanilsa kamera kalici olarak kayardi ve oyun alani ekranin disina
+  /// tasardi.
+  void _shakeCamera() {
+    camera.viewfinder.add(
+      MoveEffect.by(
+        Vector2(
+          GameConfig.screenShakeOffset,
+          -GameConfig.screenShakeOffset * 0.6,
+        ),
+        EffectController(
+          duration: GameConfig.screenShakeStepDuration,
+          alternate: true,
+          repeatCount: GameConfig.screenShakeRepeatCount,
+        ),
+      ),
+    );
   }
 
   /// Uygulama arka plana alindiginda cagrilir.
@@ -184,14 +264,18 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
   /// yere olur. Yalnizca oynanis sirasinda etkilidir; menude cagrilirsa
   /// hicbir sey yapmaz.
   void pauseIfPlaying() {
-    if (phase.value == GamePhase.playing) {
+    if (isPlaying) {
       togglePause();
     }
   }
 
   /// Duraklat / devam et.
+  ///
+  /// `isPlaying` kullanilir, `phase.value == playing` degil: olum animasyonu
+  /// penceresinde `phase` hala `playing` oldugu icin duraklat butonuna
+  /// basilabilirdi ve olum gecisi askida kalirdi.
   void togglePause() {
-    if (phase.value == GamePhase.playing) {
+    if (isPlaying) {
       phase.value = GamePhase.paused;
       // pauseEngine: `update` cagrilari tamamen durur, yani `dt` akmaz.
       // Yalnizca cizimi durdurmak yeterli olmazdi -- dusmanlar arka planda
@@ -230,26 +314,30 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
     }
   }
 
+  /// Dunyadaki [T] turundeki tum component'leri agactan cikarir.
+  ///
+  /// `toList()` zorunlu: `children` uzerinde gezinirken ayni koleksiyondan
+  /// eleman cikarmak dolayli olarak degisiklik hatasina yol acabilir.
+  void _removeAllFromWorld<T extends Component>() {
+    for (final T component in world.children.whereType<T>().toList(
+      growable: false,
+    )) {
+      component.removeFromParent();
+    }
+  }
+
   /// Sahneyi bosaltir ve sayaclari sifirlar.
   void _resetScene() {
-    // Kalan dusman ve mermiler temizlenmezse yeni oyun, onceki oyunun
-    // ekrandaki nesneleriyle baslar -- sik yapilan bir hata.
-    for (final EnemyComponent enemy in world.children
-        .whereType<EnemyComponent>()
-        .toList(growable: false)) {
-      enemy.removeFromParent();
-    }
-    for (final BulletComponent bullet in world.children
-        .whereType<BulletComponent>()
-        .toList(growable: false)) {
-      bullet.removeFromParent();
-    }
-    for (final PickupComponent pickup in world.children
-        .whereType<PickupComponent>()
-        .toList(growable: false)) {
-      pickup.removeFromParent();
-    }
+    // Kalan nesneler temizlenmezse yeni oyun, onceki oyunun ekrandaki
+    // nesneleriyle baslar -- sik yapilan bir hata.
+    _removeAllFromWorld<EnemyComponent>();
+    _removeAllFromWorld<BulletComponent>();
+    _removeAllFromWorld<PickupComponent>();
+    // Yarim kalmis patlamalar yeni oyuna sarkmasin.
+    _removeAllFromWorld<ExplosionComponent>();
 
+    _isDying = false;
+    _deathCountdown = 0;
     _player?.resetToStart();
     for (final IntervalSpawner spawner in _spawners) {
       spawner.reset();

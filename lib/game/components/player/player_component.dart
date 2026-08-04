@@ -30,8 +30,9 @@ class PlayerComponent extends SpriteComponent
 
   double _fireCooldown = 0;
 
+  /// Senkron `onLoad` (bilincli) -- gerekcesi `ExplosionComponent`'te anlatildi.
   @override
-  Future<void> onLoad() async {
+  void onLoad() {
     sprite = Sprite(game.images.fromCache(GameAssets.player));
     resetToStart();
 
@@ -42,7 +43,7 @@ class PlayerComponent extends SpriteComponent
     // CollisionType.active: oyuncu tarama baslatir, cunku dusmanlar passive.
     // isSolid: true -> tam kapsanma durumunda da carpisma algilanir
     // (oyuncu ve dusman yaricaplari yakin oldugu icin bu durum mumkundur).
-    await add(
+    add(
       CircleHitbox(
         radius: size.x * 0.34,
         position: size / 2,
@@ -73,6 +74,18 @@ class PlayerComponent extends SpriteComponent
     );
     _target.setFrom(position);
     _fireCooldown = 0;
+    // Olum aninda gizlenmis olabilir; yeniden gorunur yapilir.
+    opacity = 1;
+  }
+
+  /// Olum aninda gemiyi gizler.
+  ///
+  /// Component agactan CIKARILMIYOR, yalnizca gorunmez yapiliyor: cikarilsa
+  /// yeniden baslatmada tekrar eklenmesi ve baglantilarinin (girdi geri
+  /// cagrisi, hitbox) yeniden kurulmasi gerekirdi. Gizlemek daha basit ve
+  /// hatasiz.
+  void hideForDeath() {
+    opacity = 0;
   }
 
   void _clampTargetToScreen() {

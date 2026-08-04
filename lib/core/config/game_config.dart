@@ -120,6 +120,39 @@ abstract final class GameConfig {
   /// tek gercek risk/odul kararidir.
   static const int scorePerPickupCollected = 100;
 
+  // ------------------------------------------------------- gorsel geri bildirim
+  /// Patlama efektinin suresi (saniye).
+  static const double explosionDuration = 0.32;
+
+  /// Patlamanin buyume carpani (1.0 = buyumez).
+  static const double explosionScaleTarget = 2.6;
+
+  static const double enemyExplosionRadius = 15;
+  static const double playerExplosionRadius = 26;
+  static const double pickupFlashRadius = 13;
+
+  /// Patlamalar SICAK renk (ates) tonundadir, nesnenin kendi rengi degil.
+  /// Dusman macenta oldugu icin macenta bir patlama "buyumus dusman" gibi
+  /// gorunur ve isabet okunmaz; turuncu hem koyu zeminde hem macenta sprite
+  /// uzerinde net ayirt edilir.
+  static const Color enemyExplosionColor = Color(0xFFFF9A4D);
+  static const Color playerExplosionColor = Color(0xFFFFC46E);
+  static const Color pickupFlashColor = Color(0xFFFFE58A);
+
+  /// Olum aninda kameranin sapma miktari (piksel).
+  static const double screenShakeOffset = 7;
+
+  /// Bir sarsinti adiminin suresi. `alternate` ile ileri-geri gidildigi icin
+  /// kamera baslangic konumuna geri doner, kalici kayma olusmaz.
+  static const double screenShakeStepDuration = 0.045;
+  static const int screenShakeRepeatCount = 3;
+
+  /// Oyuncu oldukten sonra "oyun bitti" ekrani gelene kadar gecen sure.
+  ///
+  /// Bu pencere olmadan `pauseEngine()` aninda cagrildigi icin patlama hic
+  /// gorunmez ve oyuncu neden oldugunu anlamaz.
+  static const double deathAnimationDuration = 0.55;
+
   // ---------------------------------------------------------------- kalicilik
   /// Skor gecmisinde saklanacak en fazla kayit sayisi.
   static const int maxScoreHistoryEntries = 10;

@@ -4,6 +4,7 @@ import 'package:flame/components.dart';
 import '../../../core/assets/game_assets.dart';
 import '../../../core/config/game_config.dart';
 import '../../marsky_game.dart';
+import '../effects/explosion_component.dart';
 
 /// Toplanabilir altin nesne.
 ///
@@ -28,15 +29,16 @@ class PickupComponent extends SpriteComponent
   /// Ayni karede birden fazla temas olusursa cift puan verilmesini engeller.
   bool get isCollected => _isCollected;
 
+  /// Senkron `onLoad` (bilincli) -- gerekcesi `ExplosionComponent`'te anlatildi.
   @override
-  Future<void> onLoad() async {
+  void onLoad() {
     sprite = Sprite(game.images.fromCache(GameAssets.pickup));
 
     // CollisionType.passive: nesne kimseyi taramaz, yalnizca oyuncu tarafindan
     // bulunur. Oyuncunun hitbox'i `active` oldugu icin temas yakalanir.
     // isSolid: true -> kucuk bir hitbox tamamen icine girse de temas sayilir
     // (bkz. CLAUDE.md, hitbox kurali).
-    await add(
+    add(
       CircleHitbox(
         radius: size.x * 0.45,
         position: size / 2,
@@ -53,6 +55,15 @@ class PickupComponent extends SpriteComponent
       return;
     }
     _isCollected = true;
+
+    // Kisa bir altin parlama: oyuncu elmasi gercekten aldigini gorur.
+    parent?.add(
+      ExplosionComponent(
+        explosionPosition: position.clone(),
+        explosionRadius: GameConfig.pickupFlashRadius,
+        explosionColor: GameConfig.pickupFlashColor,
+      ),
+    );
     removeFromParent();
   }
 
