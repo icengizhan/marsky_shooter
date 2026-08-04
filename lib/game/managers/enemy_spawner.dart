@@ -24,10 +24,21 @@ class EnemySpawner extends IntervalSpawner {
     return randomBetween(range.min, range.max);
   }
 
+  /// Su an sahnede olan dusman sayisi.
+  int get activeEnemyCount =>
+      parent?.children.whereType<EnemyComponent>().length ?? 0;
+
   @override
   void spawnOne() {
     final PlayerComponent? player = game.playerOrNull;
     if (player == null) {
+      return;
+    }
+
+    // Ust sinira ulasildiysa bu tur atlanir. Bkz. GameConfig.maxConcurrentEnemies:
+    // sinir olmadan uzun oyunlarda dusmanlar birikir, kare hizi duser ve
+    // kacilacak bosluk kalmaz.
+    if (activeEnemyCount >= GameConfig.maxConcurrentEnemies) {
       return;
     }
 

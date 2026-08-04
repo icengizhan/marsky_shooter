@@ -5,6 +5,7 @@ import '../../../core/assets/game_assets.dart';
 import '../../../core/config/game_config.dart';
 import '../../marsky_game.dart';
 import '../enemy/enemy_component.dart';
+import '../play_area_bounds.dart';
 
 /// Oyuncunun ates ettigi mermi. Yukari dogru sabit hizla gider.
 ///
@@ -86,9 +87,9 @@ class BulletComponent extends SpriteComponent
     // bagli olur, 120 Hz telefonda 60 Hz telefonun iki kati hizli ucar.
     position.y -= GameConfig.bulletSpeed * dt;
 
-    // Ekran disina cikan mermi agactan cikarilir. Yapilmazsa her ates edilen
-    // mermi sonsuza kadar bellekte ve update dongusunde kalir (bellek sizintisi).
-    if (position.y + size.y < 0) {
+    // Ekran disina cikan mermi agactan cikarilir (ve havuza doner). Yapilmazsa
+    // her ates edilen mermi sonsuza kadar bellekte ve update dongusunde kalir.
+    if (isAbovePlayArea) {
       removeFromParent();
     }
   }

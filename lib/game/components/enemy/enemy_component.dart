@@ -5,6 +5,7 @@ import '../../../core/assets/game_assets.dart';
 import '../../../core/config/game_config.dart';
 import '../../marsky_game.dart';
 import '../effects/explosion_component.dart';
+import '../play_area_bounds.dart';
 
 /// Ekranin ustunde olusup OYUNCUYA DOGRU inen dusman.
 ///
@@ -106,8 +107,10 @@ class EnemyComponent extends SpriteComponent with HasGameReference<MarskyGame> {
     // Hareket her zaman `dt` ile olceklenir -> FPS'ten bagimsiz hiz.
     position += velocity * dt;
 
-    // Ekranin altindan cikan dusman temizlenir.
-    if (position.y - size.y > GameConfig.designHeight) {
+    // Ekran disina cikan dusman temizlenir (ve havuza doner).
+    // Yanlar da kontrol edilir: nisan sapmasi yuzunden capraz inen bir dusman
+    // yana savrulabilir ve yalnizca alt sinira bakilirsa gereksizce yasar.
+    if (isBelowPlayArea || isBesidePlayArea) {
       removeFromParent();
     }
   }

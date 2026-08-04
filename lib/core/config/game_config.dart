@@ -91,6 +91,15 @@ abstract final class GameConfig {
   static const double spawnIntervalMin = 0.55;
   static const double spawnIntervalMax = 1.40;
 
+  /// Ekranda ayni anda bulunabilecek en fazla dusman sayisi.
+  ///
+  /// NEDEN GEREKLI: zorluk egrisi spawn araligini 0,25 saniyeye kadar indiriyor
+  /// ve dusman ekranda 6-11 saniye kaliyor. Ust sinir olmadan cok uzun bir
+  /// oyunda teorik olarak ~40 dusman birikebilir; bu hem kare hizini dusurur
+  /// hem oyunu adaletsiz kilar (kacilacak bosluk kalmaz). Sinira ulasildiginda
+  /// spawn ATLANIR, sayac normal isler.
+  static const int maxConcurrentEnemies = 24;
+
   /// Zorluk egrisi: her [difficultyStepSeconds] saniyede spawn araligi
   /// [difficultyStepFactor] kadar kisalir, taban [spawnIntervalFloor]'dur.
   static const double difficultyStepSeconds = 15;
@@ -166,4 +175,59 @@ abstract final class GameConfig {
   // ---------------------------------------------------------------- kalicilik
   /// Skor gecmisinde saklanacak en fazla kayit sayisi.
   static const int maxScoreHistoryEntries = 10;
+
+  // --------------------------------------------------------------- dogrulama
+  /// Yapilandirmanin tutarli oldugunu dogrular.
+  ///
+  /// NEDEN: bu dosyadaki sayilar oyun dengesini ayarlarken elle degistiriliyor.
+  /// `min` degerini `max`in uzerine cikarmak gibi bir yanlislik SESSIZ bir
+  /// bozulma yaratir -- `randomBetween(min, max)` negatif aralikla calisir ve
+  /// dusmanlar hic olusmaz. Buradaki kontroller boyle bir hatayi ilk karede,
+  /// anlasilir bir mesajla yakalar.
+  ///
+  /// `assert` icinde cagrilir, yani YALNIZCA debug/test derlemesinde calisir;
+  /// release performansina etkisi yoktur. Kullanimi:
+  /// `assert(GameConfig.isConsistent);`
+  static bool get isConsistent {
+    assert(
+      spawnIntervalMin <= spawnIntervalMax,
+      'spawnIntervalMin, spawnIntervalMax degerini asamaz',
+    );
+    assert(
+      spawnIntervalFloor <= spawnIntervalMin,
+      'spawnIntervalFloor, spawnIntervalMin degerinden buyuk olamaz '
+      '(taban zaten baslangic araliginin altinda olmali)',
+    );
+    assert(
+      enemySpeedMin <= enemySpeedMax,
+      'enemySpeedMin, enemySpeedMax degerini asamaz',
+    );
+    assert(
+      pickupIntervalMin <= pickupIntervalMax,
+      'pickupIntervalMin, pickupIntervalMax degerini asamaz',
+    );
+    assert(
+      difficultyStepFactor > 0 && difficultyStepFactor < 1,
+      'difficultyStepFactor 0 ile 1 arasinda olmali; 1 ve uzeri zorlugu '
+      'AZALTIR, 0 ve alti araligi sifirlar',
+    );
+    assert(
+      difficultyStepSeconds > 0,
+      'difficultyStepSeconds sifir olamaz (sifira bolme)',
+    );
+    assert(fireCooldown > 0, 'fireCooldown sifir olamaz (sonsuz ates)');
+    assert(
+      maxConcurrentEnemies > 0,
+      'maxConcurrentEnemies sifir olsa hic dusman olusmaz',
+    );
+    assert(
+      playerEdgePadding * 2 < designWidth,
+      'playerEdgePadding oyun alanindan genis olamaz',
+    );
+    assert(
+      deathAnimationDuration > 0,
+      'deathAnimationDuration sifir olsa olum animasyonu gorunmez',
+    );
+    return true;
+  }
 }

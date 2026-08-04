@@ -5,6 +5,7 @@ import '../../../core/assets/game_assets.dart';
 import '../../../core/config/game_config.dart';
 import '../../marsky_game.dart';
 import '../effects/explosion_component.dart';
+import '../play_area_bounds.dart';
 
 /// Toplanabilir altin nesne.
 ///
@@ -78,7 +79,7 @@ class PickupComponent extends SpriteComponent
     // oynanisi degistirmez.
     angle += GameConfig.pickupRotationSpeed * dt;
 
-    if (position.y - size.y > GameConfig.designHeight) {
+    if (isBelowPlayArea) {
       removeFromParent();
     }
   }

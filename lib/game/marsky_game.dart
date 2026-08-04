@@ -156,6 +156,10 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
   Future<void> onLoad() async {
     await super.onLoad();
 
+    // Yapilandirma tutarsizsa ILK KAREDE anlasilir bir mesajla patlar.
+    // Yalnizca debug/test derlemesinde calisir.
+    assert(GameConfig.isConsistent);
+
     await images.loadAll(GameAssets.images);
     await audio.preload();
 
