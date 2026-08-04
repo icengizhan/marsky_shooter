@@ -14,11 +14,37 @@ class FlameGameAudio implements GameAudio {
   @override
   bool get isMuted => _muted;
 
-  /// Ses dosyalarini disk/agdan onbellege alir. Bu yapilmazsa ilk `play`
-  /// cagrisinda yukleme gecikmesi olusur ve ses oynanistan geride kalir.
+  /// Ses dosyalarini disk/agdan onbellege alir ve ses baglamini yapilandirir.
+  ///
+  /// Bu yapilmazsa ilk `play` cagrisinda yukleme gecikmesi olusur ve ses
+  /// oynanistan geride kalir.
   /// AudioCache.loadAll (audioplayers — src/audio_cache.dart)
   @override
-  Future<void> preload() => FlameAudio.audioCache.loadAll(GameAssets.audio);
+  Future<void> preload() async {
+    await _configureAudioFocus();
+    await FlameAudio.audioCache.loadAll(GameAssets.audio);
+  }
+
+  /// SES ODAGI ALINMAZ (`AndroidAudioFocus.none`).
+  ///
+  /// audioplayers'in varsayilani `AndroidAudioFocus.gain`: her ses icin sistemden
+  /// ses odagi ISTER ve birakir. Emulator logu bunu dogruladi -- saniyede ~4,5
+  /// kez `abandonAudioFocus` cagrisi:
+  ///
+  ///   MediaFocusControl: abandonAudioFocus() ... callingPack=com.marsky.marsky_shooter
+  ///
+  /// Somut sonucu: oyuncu muzik dinliyorsa HER MERMIDE muzigi kisilir/kesilir.
+  /// Kisa oyun efektleri odak istememelidir; `none` ile efektler mevcut sesin
+  /// UZERINE calar ve kullanicinin muzigi bozulmaz.
+  ///
+  /// AudioPlayer.global.setAudioContext (audioplayers — src/global_audio_scope.dart:48)
+  Future<void> _configureAudioFocus() {
+    return AudioPlayer.global.setAudioContext(
+      AudioContext(
+        android: const AudioContextAndroid(audioFocus: AndroidAudioFocus.none),
+      ),
+    );
+  }
 
   @override
   void setMuted(bool muted) => _muted = muted;
