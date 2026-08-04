@@ -19,11 +19,13 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 
 # $PSScriptRoot param varsayilaninda guvenilir degil; burada hesapliyoruz.
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$projectRoot = Split-Path -Parent $scriptDir
 if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
-    $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-    $OutputRoot = Join-Path (Split-Path -Parent $scriptDir) 'assets'
+    $OutputRoot = Join-Path $projectRoot 'assets'
 }
-Write-Host ("Cikti koku: {0}" -f $OutputRoot)
+Write-Host ("Proje koku : {0}" -f $projectRoot)
+Write-Host ("Cikti koku : {0}" -f $OutputRoot)
 
 $imagesDir = Join-Path $OutputRoot 'images'
 $audioDir  = Join-Path $OutputRoot 'audio'
@@ -193,6 +195,137 @@ function New-StarLayer {
 
 Save-Canvas -Canvas (New-StarLayer -Size 256 -StarCount 90  -Seed 20260803 -MaxRadius 2 -Alpha 150) -Path (Join-Path $imagesDir 'stars_far.png')
 Save-Canvas -Canvas (New-StarLayer -Size 256 -StarCount 40  -Seed 20260804 -MaxRadius 4 -Alpha 235) -Path (Join-Path $imagesDir 'stars_near.png')
+
+# ------------------------------------------------------- UYGULAMA IKONLARI
+
+# Launcher ikonu, oyunun GERCEK oyuncu sprite'i uzay zemine bindirilerek uretilir.
+# Boylece ikon ile oyun icindeki gemi birebir ayni olur ve ikon da yeniden
+# uretilebilir kalir -- elle cizilmis, kaynagi belirsiz bir dosya olmaz.
+# Zemin katmani: uzay gradyani + yildizlar + camgobegi parlama (gemi YOK).
+function Add-IconBackground {
+    param($Canvas, [int]$Size)
+
+    $bg = New-VerticalGradient -Width $Size -Height $Size -TopColor (Get-Rgb 16 28 66) -BottomColor (Get-Rgb 4 5 13)
+    $Canvas.Graphics.FillRectangle($bg, 0, 0, $Size, $Size)
+    $bg.Dispose()
+
+    # Yildizlar. Sabit tohum -> her uretimde ayni desen, gereksiz git diff olmaz.
+    $rnd = New-Object System.Random(20260804)
+    $starCount = [int]($Size / 5)
+    $starRadius = [Math]::Max(1, [int]($Size / 110))
+    for ($i = 0; $i -lt $starCount; $i++) {
+        $sx = $rnd.Next(0, $Size)
+        $sy = $rnd.Next(0, $Size)
+        $sa = $rnd.Next(70, 210)
+        $Canvas.Graphics.FillEllipse(
+            (New-Object System.Drawing.SolidBrush((Get-Rgb 255 255 255 $sa))),
+            $sx, $sy, $starRadius, $starRadius
+        )
+    }
+
+    # Merkezdeki camgobegi parlama.
+    #
+    # PathGradientBrush (radyal gradyan) kullaniliyor: es merkezli dolu daireler
+    # ust uste cizilirse her dairenin kenari gorunur ve ikon "basamakli"
+    # (banding) gorunur. Radyal gradyan yumusak gecis verir.
+    $glowRadius = $Size * 0.46
+    $glowPath = New-Object System.Drawing.Drawing2D.GraphicsPath
+    $glowPath.AddEllipse(
+        [float]($Size / 2 - $glowRadius), [float]($Size / 2 - $glowRadius),
+        [float]($glowRadius * 2), [float]($glowRadius * 2)
+    )
+    $glowBrush = New-Object System.Drawing.Drawing2D.PathGradientBrush($glowPath)
+    $glowBrush.CenterColor = Get-Rgb 70 205 240 130
+    $glowBrush.SurroundColors = @((Get-Rgb 70 205 240 0))
+    $Canvas.Graphics.FillPath($glowBrush, $glowPath)
+    $glowBrush.Dispose()
+    $glowPath.Dispose()
+}
+
+# Oyuncu gemisini tuvalin ortasina bindirir.
+function Add-IconShip {
+    param($Canvas, [int]$Size, [double]$ShipRatio)
+
+    $shipPath = Join-Path $imagesDir 'player.png'
+    if (-not (Test-Path $shipPath)) {
+        throw 'player.png bulunamadi; sprite uretimi ikonlardan once calismali.'
+    }
+    $ship = New-Object System.Drawing.Bitmap($shipPath)
+    $shipSize = [int]($Size * $ShipRatio)
+    $offset = [int](($Size - $shipSize) / 2)
+    $Canvas.Graphics.DrawImage($ship, $offset, $offset, $shipSize, $shipSize)
+    $ship.Dispose()
+}
+
+# Tek parca ikon (eski Android surumleri ve web icin): zemin + gemi.
+function New-AppIcon {
+    param([int]$Size, [double]$ShipRatio = 0.62)
+    $c = New-Canvas -Width $Size -Height $Size
+    Add-IconBackground -Canvas $c -Size $Size
+    Add-IconShip -Canvas $c -Size $Size -ShipRatio $ShipRatio
+    return $c
+}
+
+Write-Host 'Uygulama ikonlari uretiliyor...'
+
+$androidRes = Join-Path $projectRoot 'android\app\src\main\res'
+$webIcons   = Join-Path $projectRoot 'web\icons'
+
+# --- Eski tip (legacy) launcher ikonu: Android 8 oncesi icin ---
+$legacySizes = @(
+    @{ Dir = 'mipmap-mdpi';    Size = 48 },
+    @{ Dir = 'mipmap-hdpi';    Size = 72 },
+    @{ Dir = 'mipmap-xhdpi';   Size = 96 },
+    @{ Dir = 'mipmap-xxhdpi';  Size = 144 },
+    @{ Dir = 'mipmap-xxxhdpi'; Size = 192 }
+)
+foreach ($icon in $legacySizes) {
+    $dir = Join-Path $androidRes $icon.Dir
+    if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
+    Save-Canvas -Canvas (New-AppIcon -Size $icon.Size) -Path (Join-Path $dir 'ic_launcher.png')
+}
+
+# --- Adaptive icon katmanlari (Android 8+) ---
+#
+# NEDEN GEREKLI: Android 8'den beri launcher, ikonu cihazin sekline (daire,
+# yuvarlak kare vb.) gore MASKELER. Yalnizca tek parca legacy ikon verilirse
+# launcher onu maskelemek yerine beyaz bir zeminin ortasina KUCUK BIR KARE
+# olarak yerlestirir -- diger uygulamalar tam dairesel gorunurken bizimki
+# "kare fotograf" gibi durur ve yamali gorunur.
+#
+# Adaptive icon iki katmandan olusur ve her katman 108dp'dir; guvenli alan
+# merkezdeki 72dp'dir (yani %66). Gemi bu alanin icinde kalacak sekilde
+# kucultulur, aksi halde daire maskesinde kanatlari kirpilir.
+$adaptiveSizes = @(
+    @{ Dir = 'mipmap-mdpi';    Size = 108 },
+    @{ Dir = 'mipmap-hdpi';    Size = 162 },
+    @{ Dir = 'mipmap-xhdpi';   Size = 216 },
+    @{ Dir = 'mipmap-xxhdpi';  Size = 324 },
+    @{ Dir = 'mipmap-xxxhdpi'; Size = 432 }
+)
+foreach ($layer in $adaptiveSizes) {
+    $dir = Join-Path $androidRes $layer.Dir
+    if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
+
+    $bgCanvas = New-Canvas -Width $layer.Size -Height $layer.Size
+    Add-IconBackground -Canvas $bgCanvas -Size $layer.Size
+    Save-Canvas -Canvas $bgCanvas -Path (Join-Path $dir 'ic_launcher_background.png')
+
+    # On plan katmani SAYDAM zeminli, yalnizca gemi.
+    $fgCanvas = New-Canvas -Width $layer.Size -Height $layer.Size
+    Add-IconShip -Canvas $fgCanvas -Size $layer.Size -ShipRatio 0.42
+    Save-Canvas -Canvas $fgCanvas -Path (Join-Path $dir 'ic_launcher_foreground.png')
+}
+
+# --- Web ikonlari ---
+# "maskable" olanlarda gemi kucultulur: tarayici/PWA da daire maskesi uygular.
+if (-not (Test-Path $webIcons)) { New-Item -ItemType Directory -Force -Path $webIcons | Out-Null }
+Save-Canvas -Canvas (New-AppIcon -Size 192) -Path (Join-Path $webIcons 'Icon-192.png')
+Save-Canvas -Canvas (New-AppIcon -Size 512) -Path (Join-Path $webIcons 'Icon-512.png')
+Save-Canvas -Canvas (New-AppIcon -Size 192 -ShipRatio 0.44) -Path (Join-Path $webIcons 'Icon-maskable-192.png')
+Save-Canvas -Canvas (New-AppIcon -Size 512 -ShipRatio 0.44) -Path (Join-Path $webIcons 'Icon-maskable-512.png')
+# Favicon kucuk oldugu icin gemi buyuk tutulur, yoksa secilemez.
+Save-Canvas -Canvas (New-AppIcon -Size 64 -ShipRatio 0.74) -Path (Join-Path $projectRoot 'web\favicon.png')
 
 # --------------------------------------------------------------------- SESLER
 

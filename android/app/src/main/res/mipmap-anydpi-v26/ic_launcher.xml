@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adaptive icon tanimi (Android 8 / API 26 ve uzeri).
+
+  Launcher, ikonu cihazin sekline gore maskeler (daire, yuvarlak kare, damla).
+  Iki katman verilir:
+    background : uzay zemini + yildizlar + parlama (tuvalin tamami)
+    foreground : yalnizca gemi, saydam zeminde, guvenli alanin icinde
+
+  Bu dosya olmadan launcher tek parca legacy ikonu maskelemek yerine beyaz bir
+  zeminin ortasina kucuk bir kare olarak koyar; diger uygulamalar dairesel
+  gorunurken bizimki yamali durur.
+
+  Iki PNG katmani tools/generate_assets.ps1 tarafindan uretilir.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@mipmap/ic_launcher_background" />
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+</adaptive-icon>

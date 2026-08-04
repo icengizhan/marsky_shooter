@@ -1,11 +1,11 @@
 {
-    "name": "marsky_shooter",
-    "short_name": "marsky_shooter",
+    "name": "MARSKY",
+    "short_name": "MARSKY",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "MARSKY Flutter and Flame case study - 2D top-down shooter",
+    "background_color": "#05060F",
+    "theme_color": "#05060F",
+    "description": "MARSKY - Flutter & Flame ile 2D top-down shooter",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
