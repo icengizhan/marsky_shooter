@@ -11,6 +11,7 @@ import '../overlays/hud_overlay.dart';
 import '../overlays/main_menu_overlay.dart';
 import '../overlays/pause_overlay.dart';
 import '../providers/settings_providers.dart';
+import 'game_boot_views.dart';
 
 /// Oyunu barindiran ekran.
 ///
@@ -91,6 +92,13 @@ class _GameScreenState extends ConsumerState<GameScreen>
         // her menu/duraklat gecisinde oyun widget'i bastan insa edilirdi.
         child: GameWidget<MarskyGame>(
           game: _game,
+          // Varliklar yuklenirken marka uyumlu bir ekran; verilmezse bos/siyah
+          // bir bosluk gorunur.
+          loadingBuilder: (BuildContext context) => const GameLoadingView(),
+          // Yukleme hatasinda Flutter'in kirmizi hata ekrani yerine anlasilir
+          // bir panel; verilmezse hata yukari firlatilir.
+          errorBuilder: (BuildContext context, Object error) =>
+              GameErrorView(error: error),
           // Overlay kimlikleri ile widget'lar burada eslesir. Oyun motoru
           // yalnizca kimlikleri bilir, widget'lari bilmez.
           overlayBuilderMap: <String, OverlayWidgetBuilder<MarskyGame>>{
