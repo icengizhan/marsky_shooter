@@ -4,7 +4,7 @@ Bu doküman iki soruya cevap verir:
 1. Case PDF'indeki her teknik beklenti **kodda nerede** karşılandı?
 2. Alternatifler yerine **neden bu kararlar** verildi?
 
-`lib/` 44 dosya / 2.939 satır · `test/` 22 dosya / 2.085 satır · **104 test** · `flutter analyze` sıfır uyarı
+`lib/` 44 dosya / 2.939 satır · `test/` 23 dosya / 2.138 satır · **106 test** · satır kapsamı **%92,1** · `flutter analyze` sıfır uyarı
 
 ---
 
@@ -374,7 +374,7 @@ eski formülle geri alınıp koşulduğunda **15,2 piksel farkla kırmızıya d�
 
 ## 5. Test Stratejisi
 
-`flutter test` → **104 test**, `flutter analyze` → sıfır uyarı, `dart format` → temiz.
+`flutter test` → **106 test**, `flutter analyze` → sıfır uyarı, `dart format` → temiz.
 Üçü de her push'ta CI'da kapı olarak koşar (`.github/workflows/ci.yml`).
 
 Dört seviye:
@@ -408,6 +408,7 @@ ihlal ettiğini isim isim söyler.
 | `game/collision_test.dart` | Mermi→düşman, oyuncu→düşman, **kapsanma regresyonu**, sahne temizliği |
 | `game/game_phase_test.dart` | Menüde ateş/spawn yok, duraklatmada skor durur, overlay senkronizasyonu |
 | `game/gameplay_behaviour_test.dart` | Sürükleme, mermi yaşam döngüsü, spawner davranışı, **60/20 FPS'te aynı hareket** (§4.10) |
+| `game/drag_input_test.dart` | Girdi yakalayıcı: sürüklemenin ekranın **her** noktasından kabul edilmesi, delta'nın dönüştürülmeden taşınması |
 | `game/pickup_test.dart` | Toplama, çift sayım olmaması, ekran dışı temizlik, menüde üretim olmaması |
 | `game/death_sequence_test.dart` | Patlama oluşumu ve kendini temizlemesi, ölüm penceresi, **kameranın başlangıca dönmesi** |
 | `game/back_button_test.dart` | Kademeli geri: oynanış→duraklat→menü→çıkış |
@@ -427,6 +428,34 @@ Testleri mümkün kılan şey **bağımlılık enjeksiyonu**: ses (`GameAudio`),
 depo (`KeyValueStore`) dışarıdan verilir. Üçü de somut bir problemi çözer, dekoratif değildir.
 
 Sıkı statik analiz: `strict-casts`, `strict-inference`, `strict-raw-types` + 10 ek lint kuralı.
+
+### Ölçülen kapsam: %92,1 (619/672 satır)
+
+```bash
+flutter test --coverage
+```
+
+Rakamın kendisinden daha anlamlı olan, **kapsanmayan yerlerin hangileri olduğu.** Sıfır
+kapsamlı yalnızca iki dosya var ve ikisi de aynı türden:
+
+| Dosya | Kapsam | Neden |
+|---|---|---|
+| `flame_game_audio.dart` | **%0** | Gerçek `flame_audio` uygulaması — platform kanalı gerektirir |
+| `shared_prefs_key_value_store.dart` | **%0** | Gerçek `shared_preferences` uygulaması — platform kanalı gerektirir |
+
+Bu bir eksik değil, **tasarımın kendisi.** İkisi de platform sınırındaki ince adaptörler
+(19 ve 14 satır) ve tam olarak bu yüzden ayrı sınıflar: iş mantığı onların arkasındaki
+`GameAudio` / `KeyValueStore` sözleşmelerine bağlı, dolayısıyla geri kalan her şey sahte
+uygulamalarla test edilebiliyor. Dependency Inversion'ın somut karşılığı budur —
+**test edilemeyen kodu 33 satıra sıkıştırmak.**
+
+Kalan bilinen boşluk: `drag_input_component.dart` %50. `containsLocalPoint` ve delta'nın
+dönüştürülmeden taşınması kapsandı; `onDragUpdate` gövdesi kapsanmadı — çünkü gerçek jest
+boru hattı `GameWidget` içinde bir `GameRenderBox` istiyor ve `DisplacementEvent.localDelta`
+yalnızca olay `deliverAtPoint` ile dağıtılırken okunabiliyor. Widget testiyle denendi ve
+karşılıklı beklemeyle kilitlendi: varlık yüklemesi gerçek dosya okuması olduğu için
+`tester.runAsync` gerekiyor, ama `game.loaded` kare çevrilmesini bekliyor ve `runAsync`
+kare çevirmiyor. Doğru araç `integration_test` ile gerçek cihaz; yapılmadı ve gizlenmiyor.
 
 ### Yorum yazım kuralı
 
