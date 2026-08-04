@@ -20,7 +20,7 @@ dependencies:
   flame_audio: ^2.12.2
 
   # Oyun DISI UI state'i (ayarlar, yuksek skor, skor gecmisi).
-  # Oyun ICI state Flame tarafinda ValueNotifier ile tutulur - bkz. CLAUDE.md
+  # Oyun ICI state Flame tarafinda ValueNotifier ile tutulur - bkz. ARCHITECTURE.md §3.2
   # https://riverpod.dev/
   flutter_riverpod: ^3.4.2
 

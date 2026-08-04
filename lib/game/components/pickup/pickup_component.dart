@@ -38,7 +38,7 @@ class PickupComponent extends SpriteComponent
     // CollisionType.passive: nesne kimseyi taramaz, yalnizca oyuncu tarafindan
     // bulunur. Oyuncunun hitbox'i `active` oldugu icin temas yakalanir.
     // isSolid: true -> kucuk bir hitbox tamamen icine girse de temas sayilir
-    // (bkz. CLAUDE.md, hitbox kurali).
+    // (bkz. ARCHITECTURE.md §4.1; regresyon testi test/game/collision_test.dart).
     add(
       CircleHitbox(
         radius: size.x * 0.45,
