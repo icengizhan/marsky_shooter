@@ -4,7 +4,7 @@ Bu doküman iki soruya cevap verir:
 1. Case PDF'indeki her teknik beklenti **kodda nerede** karşılandı?
 2. Alternatifler yerine **neden bu kararlar** verildi?
 
-`lib/` 44 dosya / 2.939 satır · `test/` 23 dosya / 2.138 satır · **106 test** · satır kapsamı **%92,1** · `flutter analyze` sıfır uyarı
+`lib/` 44 dosya / 2.944 satır · `test/` 24 dosya / 2.208 satır · **107 test** · satır kapsamı **%92,1** · `flutter analyze` sıfır uyarı
 
 ---
 
@@ -348,6 +348,36 @@ yeterli: overlay yok olsa bile kayıt tamamlanır.
 **Ders:** Sahte nesnenin gerçekten hızlı olması bir kolaylık değil, bir **kör noktadır**.
 Asenkronluğu taklit etmeyen test double'ı, asenkron hataları da taklit etmez.
 
+### 4.11 Ana menüde geri tuşu ölüydü
+
+**Belirti:** README "oynanış → duraklat → ana menü → **çıkış**" diyordu. İlk üç adım
+çalışıyordu, sonuncusu çalışmıyordu: ana menüde geri tuşu **hiçbir şey yapmıyordu.**
+
+**Nasıl bulundu:** Release APK'sı Android 16 (SDK 36) emülatörüne kurulup elle her geçiş
+denendi. `dumpsys activity activities` ile ölçüldü: geri tuşundan sonra `topResumedActivity`
+hâlâ uygulamanın kendisiydi.
+
+**Sebep:** `PopScope(canPop: phase == menu)`. Android 13+ ile geri hareketi
+`onBackInvokedCallback` üzerinden yürür. `canPop` **true** olduğunda Flutter geri isteğini
+**üstlenir**; kök rotada poplanacak bir şey bulamaz ve hiçbir şey yapmaz — sistem de kendi
+varsayılanını uygulamaz, çünkü istek zaten tüketilmiştir. Yani `canPop: true` "sistem
+halletsin" demek değil, "ben hallederim" demektir.
+
+**Çözüm:** `canPop: false` — istek her zaman bize gelir, kararı zaten oyun veriyordu
+(`handleBackRequest()` menüde `true` döner) ve çıkışı artık açıkça biz yapıyoruz:
+`SystemNavigator.pop()`. Bu arada `canPop` sabitlendiği için faza bakan
+`ValueListenableBuilder` gereksiz hâle geldi ve kaldırıldı — her faz geçişinde boşuna
+yeniden kurulum yapıyordu.
+
+**Regresyon testi:** `back_navigation_test.dart` platform kanalını taklit ederek
+`SystemNavigator.pop` çağrısını yakalar. Eski koda geri dönülüp sınandı: yakalanan çağrı
+listesi **boş** kalıyor, yani test gerçekten ayırt ediyor. Cihazda da doğrulandı: geri
+tuşundan sonra ön plan launcher'a geçiyor, uygulama süreci ise yaşamaya devam ediyor
+(temiz arka plan, çökme değil).
+
+**Ders:** Bu hatayı hiçbir birim testi bulamazdı, çünkü hata **platform sözleşmesinde**ydi.
+Release derlemesini gerçek bir cihazda elle çalıştırmanın yerini test tutmuyor.
+
 ### 4.10 Gemi hareketi kare hızına göre farklı davranıyordu
 
 **Belirti:** Kod yorumu "`dt` ile çarpıldığı için FPS'ten bağımsızdır" diyordu. Denetimde bu
@@ -374,7 +404,7 @@ eski formülle geri alınıp koşulduğunda **15,2 piksel farkla kırmızıya d�
 
 ## 5. Test Stratejisi
 
-`flutter test` → **106 test**, `flutter analyze` → sıfır uyarı, `dart format` → temiz.
+`flutter test` → **107 test**, `flutter analyze` → sıfır uyarı, `dart format` → temiz.
 Üçü de her push'ta CI'da kapı olarak koşar (`.github/workflows/ci.yml`).
 
 Dört seviye:
@@ -422,6 +452,7 @@ ihlal ettiğini isim isim söyler.
 | `presentation/main_menu_overlay_test.dart` | Kayıtlı skor gösterimi, kural özeti, BAŞLA'nın oyunu başlatması, geçmiş listesi |
 | `presentation/hud_overlay_test.dart` | Skor metninin güncellenmesi, duraklat butonu |
 | `presentation/game_over_overlay_test.dart` | Döküm, **diske yazma**, rekor bildirimi, düşük skorun rekoru ezmemesi, **`dispose` yarışında kaydın tamamlanması** (§4.9) |
+| `presentation/back_navigation_test.dart` | Ana menüde geri tuşunun gerçekten çıkış yapması — platform kanalı taklit edilerek (§4.11) |
 | `data/score_repository_impl_test.dart` | Repository mantığı (`mocktail` ile sahte depo) |
 
 Testleri mümkün kılan şey **bağımlılık enjeksiyonu**: ses (`GameAudio`), rastgelelik (`Random`) ve

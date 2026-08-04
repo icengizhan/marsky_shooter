@@ -1,11 +1,11 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/config/game_config.dart';
 import '../../game/marsky_game.dart';
 import '../../game/state/game_overlays.dart';
-import '../../game/state/game_phase.dart';
 import '../overlays/game_over_overlay.dart';
 import '../overlays/hud_overlay.dart';
 import '../overlays/main_menu_overlay.dart';
@@ -82,13 +82,33 @@ class _GameScreenState extends ConsumerState<GameScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: GameConfig.spaceColor,
-      // Geri tusunu ele almak icin oyunun durumunu bilmek gerekiyor: sistem
-      // cikisina YALNIZCA ana menude izin verilir.
-      body: ValueListenableBuilder<GamePhase>(
-        valueListenable: _game.phase,
-        // `child` parametresi onemli: GameWidget burada BIR KEZ kurulur ve
-        // durum her degistiginde yeniden kurulmaz. `builder` icine yazilsaydi
-        // her menu/duraklat gecisinde oyun widget'i bastan insa edilirdi.
+      // `PopScope` DURUMU DINLEMEZ. Onceden burada bir
+      // `ValueListenableBuilder` vardi cunku `canPop` faza gore degisiyordu;
+      // artik `canPop` sabit `false` ve karari oyun verdigi icin faz
+      // dinlemenin tek etkisi her gecişte gereksiz yeniden kurulum olurdu.
+      body: PopScope(
+        // `canPop: false` -- geri istegi HER ZAMAN bize gelir, karari oyun
+        // verir: oynanis -> duraklat -> ana menu -> uygulamadan cikis.
+        //
+        // NEDEN `canPop: phase == menu` DEGIL: Android 13+ ile geri hareketi
+        // "onBackInvokedCallback" uzerinden yurur. `canPop` true oldugunda
+        // Flutter geri istegini USTLENIR, kok rotada poplanacak bir sey
+        // bulamaz ve HICBIR SEY OLMAZ -- sistem de kendi varsayilanini
+        // uygulamaz, cunku istek zaten tuketilmistir. Ana menude geri tusu bu
+        // yuzden olu kaliyordu; Android 16 (SDK 36) emulatorunde release
+        // derlemesinde dogrulandi.
+        //
+        // Cikisi artik acikca biz yapiyoruz.
+        canPop: false,
+        onPopInvokedWithResult: (bool didPop, Object? result) {
+          if (didPop) {
+            return;
+          }
+          if (_game.handleBackRequest()) {
+            // SystemNavigator.pop (Flutter — services/system_navigator.dart)
+            SystemNavigator.pop();
+          }
+        },
         child: GameWidget<MarskyGame>(
           game: _game,
           // Varliklar yuklenirken marka uyumlu bir ekran; verilmezse bos/siyah
@@ -111,21 +131,6 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 GameOverOverlay(game: game),
           },
         ),
-        builder: (BuildContext context, GamePhase phase, Widget? child) {
-          return PopScope(
-            // Yalnizca ana menude geri tusu uygulamayi kapatabilir.
-            canPop: phase == GamePhase.menu,
-            onPopInvokedWithResult: (bool didPop, Object? result) {
-              // didPop true ise sistem cikisi zaten gerceklesti (menudeydik).
-              if (didPop) {
-                return;
-              }
-              // Karari oyun verir: oynanis -> duraklat -> menu.
-              _game.handleBackRequest();
-            },
-            child: child!,
-          );
-        },
       ),
     );
   }
