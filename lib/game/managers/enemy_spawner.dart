@@ -45,10 +45,7 @@ class EnemySpawner extends IntervalSpawner {
     final Vector2 velocity = EnemyAim.velocityToward(
       spawnPosition: spawnPosition,
       targetPosition: player.position,
-      speed: randomBetween(
-        GameConfig.enemySpeedMin,
-        GameConfig.enemySpeedMax,
-      ),
+      speed: randomBetween(GameConfig.enemySpeedMin, GameConfig.enemySpeedMax),
       deviationRadians:
           ((random.nextDouble() * 2) - 1) * GameConfig.enemyAimSpread,
     );

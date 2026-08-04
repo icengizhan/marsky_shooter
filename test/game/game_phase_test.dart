@@ -13,62 +13,72 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Oyun durumlari', () {
-    testWithGame<MarskyGame>('ana menude ates edilmez ve dusman olusmaz', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
-      expect(game.phase.value, GamePhase.menu);
+    testWithGame<MarskyGame>(
+      'ana menude ates edilmez ve dusman olusmaz',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
+        expect(game.phase.value, GamePhase.menu);
 
-      // 5 saniye beklenir: normalde bu surede birkac dusman olusur ve
-      // ~20 mermi atilirdi.
-      advance(game, 5);
-      await game.ready();
+        // 5 saniye beklenir: normalde bu surede birkac dusman olusur ve
+        // ~20 mermi atilirdi.
+        advance(game, 5);
+        await game.ready();
 
-      expect(
-        game.world.children.whereType<EnemyComponent>(),
-        isEmpty,
-        reason: 'menude dusman olusmamali',
-      );
-      expect(
-        game.world.children.whereType<BulletComponent>(),
-        isEmpty,
-        reason: 'menude ates edilmemeli',
-      );
-      expect(game.score.points.value, 0, reason: 'menude skor artmamali');
-    });
+        expect(
+          game.world.children.whereType<EnemyComponent>(),
+          isEmpty,
+          reason: 'menude dusman olusmamali',
+        );
+        expect(
+          game.world.children.whereType<BulletComponent>(),
+          isEmpty,
+          reason: 'menude ates edilmemeli',
+        );
+        expect(game.score.points.value, 0, reason: 'menude skor artmamali');
+      },
+    );
 
-    testWithGame<MarskyGame>('oynanista ates edilir ve dusman olusur', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
-      game.startGame();
+    testWithGame<MarskyGame>(
+      'oynanista ates edilir ve dusman olusur',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
+        game.startGame();
 
-      advance(game, 3);
-      await game.ready();
+        advance(game, 3);
+        await game.ready();
 
-      expect(
-        game.world.children.whereType<BulletComponent>(),
-        isNotEmpty,
-        reason: 'otomatik ates calismali',
-      );
-      expect(game.score.points.value, greaterThan(0), reason: 'hayatta kalma puani islemeli');
-    });
+        expect(
+          game.world.children.whereType<BulletComponent>(),
+          isNotEmpty,
+          reason: 'otomatik ates calismali',
+        );
+        expect(
+          game.score.points.value,
+          greaterThan(0),
+          reason: 'hayatta kalma puani islemeli',
+        );
+      },
+    );
 
-    testWithGame<MarskyGame>('duraklatma motoru durdurur, devam etmek suruyu geri getirir', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
-      game.startGame();
-      expect(game.paused, isFalse);
+    testWithGame<MarskyGame>(
+      'duraklatma motoru durdurur, devam etmek suruyu geri getirir',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
+        game.startGame();
+        expect(game.paused, isFalse);
 
-      game.togglePause();
-      expect(game.phase.value, GamePhase.paused);
-      expect(game.paused, isTrue, reason: 'pauseEngine cagrilmali');
+        game.togglePause();
+        expect(game.phase.value, GamePhase.paused);
+        expect(game.paused, isTrue, reason: 'pauseEngine cagrilmali');
 
-      game.togglePause();
-      expect(game.phase.value, GamePhase.playing);
-      expect(game.paused, isFalse, reason: 'resumeEngine cagrilmali');
-    });
+        game.togglePause();
+        expect(game.phase.value, GamePhase.playing);
+        expect(game.paused, isFalse, reason: 'resumeEngine cagrilmali');
+      },
+    );
 
     testWithGame<MarskyGame>('duraklatilmisken skor artmaz', createSilentGame, (
       MarskyGame game,
@@ -86,52 +96,60 @@ void main() {
       expect(game.score.points.value, scoreBeforePause);
     });
 
-    testWithGame<MarskyGame>('goToMenu sahneyi temizler ve menuye doner', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
-      game.startGame();
-      advance(game, 3);
-      await game.ready();
+    testWithGame<MarskyGame>(
+      'goToMenu sahneyi temizler ve menuye doner',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
+        game.startGame();
+        advance(game, 3);
+        await game.ready();
 
-      game.goToMenu();
-      await game.ready();
+        game.goToMenu();
+        await game.ready();
 
-      expect(game.phase.value, GamePhase.menu);
-      expect(game.paused, isFalse, reason: 'menude yildizlar kaymaya devam etmeli');
-      expect(game.world.children.whereType<EnemyComponent>(), isEmpty);
-      expect(game.world.children.whereType<BulletComponent>(), isEmpty);
-      expect(game.score.points.value, 0);
-    });
+        expect(game.phase.value, GamePhase.menu);
+        expect(
+          game.paused,
+          isFalse,
+          reason: 'menude yildizlar kaymaya devam etmeli',
+        );
+        expect(game.world.children.whereType<EnemyComponent>(), isEmpty);
+        expect(game.world.children.whereType<BulletComponent>(), isEmpty);
+        expect(game.score.points.value, 0);
+      },
+    );
 
-    testWithGame<MarskyGame>('her durum icin dogru overlay aktif olur', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
-      expect(game.overlays.activeOverlays, <String>[GameOverlays.mainMenu]);
+    testWithGame<MarskyGame>(
+      'her durum icin dogru overlay aktif olur',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
+        expect(game.overlays.activeOverlays, <String>[GameOverlays.mainMenu]);
 
-      game.startGame();
-      expect(game.overlays.activeOverlays, <String>[GameOverlays.hud]);
+        game.startGame();
+        expect(game.overlays.activeOverlays, <String>[GameOverlays.hud]);
 
-      game.togglePause();
-      expect(
-        game.overlays.activeOverlays,
-        containsAll(<String>[GameOverlays.hud, GameOverlays.pause]),
-        reason: 'duraklatmada skor gorunur kalmali',
-      );
+        game.togglePause();
+        expect(
+          game.overlays.activeOverlays,
+          containsAll(<String>[GameOverlays.hud, GameOverlays.pause]),
+          reason: 'duraklatmada skor gorunur kalmali',
+        );
 
-      game.togglePause();
-      // Olum animasyonu penceresi boyunca HUD gorunur kalir; "oyun bitti"
-      // ekrani pencere bitince gelir.
-      game.handlePlayerHit();
-      expect(
-        game.overlays.activeOverlays,
-        <String>[GameOverlays.hud],
-        reason: 'olum animasyonu sirasinda oyun bitti ekrani daha gelmemeli',
-      );
+        game.togglePause();
+        // Olum animasyonu penceresi boyunca HUD gorunur kalir; "oyun bitti"
+        // ekrani pencere bitince gelir.
+        game.handlePlayerHit();
+        expect(
+          game.overlays.activeOverlays,
+          <String>[GameOverlays.hud],
+          reason: 'olum animasyonu sirasinda oyun bitti ekrani daha gelmemeli',
+        );
 
-      advance(game, GameConfig.deathAnimationDuration + 0.1);
-      expect(game.overlays.activeOverlays, <String>[GameOverlays.gameOver]);
-    });
+        advance(game, GameConfig.deathAnimationDuration + 0.1);
+        expect(game.overlays.activeOverlays, <String>[GameOverlays.gameOver]);
+      },
+    );
   });
 }

@@ -76,21 +76,23 @@ void main() {
       expect(game.paused, isFalse, reason: 'menude motor durmamali');
     });
 
-    testWithGame<MarskyGame>('oyun bitti ekraninda durumu bozmaz', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
-      game.startGame();
-      killPlayerAndSettle(game);
-      expect(game.phase.value, GamePhase.gameOver);
+    testWithGame<MarskyGame>(
+      'oyun bitti ekraninda durumu bozmaz',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
+        game.startGame();
+        killPlayerAndSettle(game);
+        expect(game.phase.value, GamePhase.gameOver);
 
-      game.pauseIfPlaying();
+        game.pauseIfPlaying();
 
-      expect(
-        game.phase.value,
-        GamePhase.gameOver,
-        reason: 'oyun bitti ekrani duraklatmaya donmemeli',
-      );
-    });
+        expect(
+          game.phase.value,
+          GamePhase.gameOver,
+          reason: 'oyun bitti ekrani duraklatmaya donmemeli',
+        );
+      },
+    );
   });
 }

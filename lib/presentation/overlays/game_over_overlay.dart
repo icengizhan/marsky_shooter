@@ -52,9 +52,9 @@ class _GameOverOverlayState extends ConsumerState<GameOverOverlay> {
     final bool isRecord = _result.total > previousBest;
 
     await ref.read(highScoreProvider.notifier).submit(_result.total);
-    await ref.read(scoreHistoryProvider.notifier).append(
-      ScoreEntry(points: _result.total, achievedAt: DateTime.now()),
-    );
+    await ref
+        .read(scoreHistoryProvider.notifier)
+        .append(ScoreEntry(points: _result.total, achievedAt: DateTime.now()));
 
     // `mounted` kontrolu: oyuncu kayit tamamlanmadan "tekrar dene"ye basmis
     // olabilir; o durumda widget artik agacta degildir.
@@ -106,8 +106,7 @@ class _GameOverOverlayState extends ConsumerState<GameOverOverlay> {
           label: 'Toplanan elmas',
           detail:
               '${_result.pickupsCollected} × ${GameConfig.scorePerPickupCollected}',
-          points:
-              _result.pickupsCollected * GameConfig.scorePerPickupCollected,
+          points: _result.pickupsCollected * GameConfig.scorePerPickupCollected,
         ),
         const SizedBox(height: 20),
         MenuButton(label: 'TEKRAR DENE', onPressed: widget.game.startGame),
@@ -154,7 +153,10 @@ class _BreakdownRow extends StatelessWidget {
           ),
           Text(
             detail,
-            style: TextStyle(color: textColor.withValues(alpha: 0.6), fontSize: 11),
+            style: TextStyle(
+              color: textColor.withValues(alpha: 0.6),
+              fontSize: 11,
+            ),
           ),
           const SizedBox(width: 10),
           SizedBox(

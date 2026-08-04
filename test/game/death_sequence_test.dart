@@ -14,146 +14,162 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Gorsel geri bildirim', () {
-    testWithGame<MarskyGame>('vurulan dusman patlama birakir', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
-      game.startGame();
+    testWithGame<MarskyGame>(
+      'vurulan dusman patlama birakir',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
+        game.startGame();
 
-      final EnemyComponent enemy = EnemyComponent(
-        spawnPosition: Vector2(100, 150),
-        velocity: Vector2.zero(),
-      );
-      await game.world.add(enemy);
-      await game.ready();
+        final EnemyComponent enemy = EnemyComponent(
+          spawnPosition: Vector2(100, 150),
+          velocity: Vector2.zero(),
+        );
+        await game.world.add(enemy);
+        await game.ready();
 
-      enemy.takeHit();
-      await game.ready();
+        enemy.takeHit();
+        await game.ready();
 
-      expect(
-        game.world.children.whereType<ExplosionComponent>(),
-        isNotEmpty,
-        reason: 'isabet gorsel geri bildirim vermeli',
-      );
-    });
+        expect(
+          game.world.children.whereType<ExplosionComponent>(),
+          isNotEmpty,
+          reason: 'isabet gorsel geri bildirim vermeli',
+        );
+      },
+    );
 
-    testWithGame<MarskyGame>('patlama suresi bitince kendini agactan cikarir', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
-      game.startGame();
+    testWithGame<MarskyGame>(
+      'patlama suresi bitince kendini agactan cikarir',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
+        game.startGame();
 
-      final EnemyComponent enemy = EnemyComponent(
-        spawnPosition: Vector2(100, 150),
-        velocity: Vector2.zero(),
-      );
-      await game.world.add(enemy);
-      await game.ready();
-      enemy.takeHit();
-      await game.ready();
+        final EnemyComponent enemy = EnemyComponent(
+          spawnPosition: Vector2(100, 150),
+          velocity: Vector2.zero(),
+        );
+        await game.world.add(enemy);
+        await game.ready();
+        enemy.takeHit();
+        await game.ready();
 
-      advance(game, GameConfig.explosionDuration + 0.2);
-      await game.ready();
+        advance(game, GameConfig.explosionDuration + 0.2);
+        await game.ready();
 
-      expect(
-        game.world.children.whereType<ExplosionComponent>(),
-        isEmpty,
-        reason: 'RemoveEffect calismali, yoksa patlamalar birikir (sizinti)',
-      );
-    });
+        expect(
+          game.world.children.whereType<ExplosionComponent>(),
+          isEmpty,
+          reason: 'RemoveEffect calismali, yoksa patlamalar birikir (sizinti)',
+        );
+      },
+    );
 
-    testWithGame<MarskyGame>('toplanan elmas parlama birakir', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
-      game.startGame();
+    testWithGame<MarskyGame>(
+      'toplanan elmas parlama birakir',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
+        game.startGame();
 
-      final PickupComponent pickup = PickupComponent(
-        spawnPosition: Vector2(200, 300),
-      );
-      await game.world.add(pickup);
-      await game.ready();
+        final PickupComponent pickup = PickupComponent(
+          spawnPosition: Vector2(200, 300),
+        );
+        await game.world.add(pickup);
+        await game.ready();
 
-      pickup.collect();
-      await game.ready();
+        pickup.collect();
+        await game.ready();
 
-      expect(game.world.children.whereType<ExplosionComponent>(), isNotEmpty);
-    });
+        expect(game.world.children.whereType<ExplosionComponent>(), isNotEmpty);
+      },
+    );
   });
 
   group('Olum dizisi', () {
-    testWithGame<MarskyGame>('olum aninda patlama olusur ve gemi gizlenir', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
-      game.startGame();
+    testWithGame<MarskyGame>(
+      'olum aninda patlama olusur ve gemi gizlenir',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
+        game.startGame();
 
-      game.handlePlayerHit();
-      await game.ready();
+        game.handlePlayerHit();
+        await game.ready();
 
-      expect(game.world.children.whereType<ExplosionComponent>(), isNotEmpty);
-      expect(
-        game.playerOrNull!.opacity,
-        0,
-        reason: 'olen gemi gorunmez olmali',
-      );
-    });
+        expect(game.world.children.whereType<ExplosionComponent>(), isNotEmpty);
+        expect(
+          game.playerOrNull!.opacity,
+          0,
+          reason: 'olen gemi gorunmez olmali',
+        );
+      },
+    );
 
-    testWithGame<MarskyGame>('olum penceresinde motor calisir ama oynanis durur', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
-      game.startGame();
-      advance(game, 2);
-      final int scoreAtDeath = game.score.points.value;
+    testWithGame<MarskyGame>(
+      'olum penceresinde motor calisir ama oynanis durur',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
+        game.startGame();
+        advance(game, 2);
+        final int scoreAtDeath = game.score.points.value;
 
-      game.handlePlayerHit();
+        game.handlePlayerHit();
 
-      // Pencere ortasi: efektler oynayabilsin diye motor CALISIR...
-      advance(game, GameConfig.deathAnimationDuration / 2);
-      expect(game.phase.value, GamePhase.playing);
-      expect(game.paused, isFalse, reason: 'efektler icin motor calismali');
-      // ...ama oynanis mantigi durmus olmali.
-      expect(game.isPlaying, isFalse);
-      expect(
-        game.score.points.value,
-        scoreAtDeath,
-        reason: 'oldukten sonra hayatta kalma puani islememeli',
-      );
-    });
+        // Pencere ortasi: efektler oynayabilsin diye motor CALISIR...
+        advance(game, GameConfig.deathAnimationDuration / 2);
+        expect(game.phase.value, GamePhase.playing);
+        expect(game.paused, isFalse, reason: 'efektler icin motor calismali');
+        // ...ama oynanis mantigi durmus olmali.
+        expect(game.isPlaying, isFalse);
+        expect(
+          game.score.points.value,
+          scoreAtDeath,
+          reason: 'oldukten sonra hayatta kalma puani islememeli',
+        );
+      },
+    );
 
-    testWithGame<MarskyGame>('pencere bitince oyun bitti ekrani gelir ve motor durur', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
-      game.startGame();
+    testWithGame<MarskyGame>(
+      'pencere bitince oyun bitti ekrani gelir ve motor durur',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
+        game.startGame();
 
-      killPlayerAndSettle(game);
+        killPlayerAndSettle(game);
 
-      expect(game.phase.value, GamePhase.gameOver);
-      expect(game.paused, isTrue);
-    });
+        expect(game.phase.value, GamePhase.gameOver);
+        expect(game.paused, isTrue);
+      },
+    );
 
-    testWithGame<MarskyGame>('olum penceresinde duraklat butonu isi bozmaz', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
-      game.startGame();
-      game.handlePlayerHit();
+    testWithGame<MarskyGame>(
+      'olum penceresinde duraklat butonu isi bozmaz',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
+        game.startGame();
+        game.handlePlayerHit();
 
-      // Olum animasyonu sirasinda duraklat denenirse gecis askida kalmamali.
-      game.togglePause();
-      expect(
-        game.phase.value,
-        GamePhase.playing,
-        reason: 'olum penceresinde duraklatma yok sayilmali',
-      );
+        // Olum animasyonu sirasinda duraklat denenirse gecis askida kalmamali.
+        game.togglePause();
+        expect(
+          game.phase.value,
+          GamePhase.playing,
+          reason: 'olum penceresinde duraklatma yok sayilmali',
+        );
 
-      advance(game, GameConfig.deathAnimationDuration + 0.1);
-      expect(game.phase.value, GamePhase.gameOver);
-    });
+        advance(game, GameConfig.deathAnimationDuration + 0.1);
+        expect(game.phase.value, GamePhase.gameOver);
+      },
+    );
 
-    testWithGame<MarskyGame>('ekran sarsintisi kamerayi baslangica geri getirir', createSilentGame, (
+    testWithGame<
+      MarskyGame
+    >('ekran sarsintisi kamerayi baslangica geri getirir', createSilentGame, (
       MarskyGame game,
     ) async {
       await game.ready();
@@ -170,27 +186,29 @@ void main() {
       expect(game.camera.viewfinder.position.y, closeTo(cameraBefore.y, 0.01));
     });
 
-    testWithGame<MarskyGame>('yeniden baslatma gemiyi tekrar gorunur yapar', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
-      game.startGame();
-      killPlayerAndSettle(game);
-      expect(game.playerOrNull!.opacity, 0);
+    testWithGame<MarskyGame>(
+      'yeniden baslatma gemiyi tekrar gorunur yapar',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
+        game.startGame();
+        killPlayerAndSettle(game);
+        expect(game.playerOrNull!.opacity, 0);
 
-      game.startGame();
-      await game.ready();
+        game.startGame();
+        await game.ready();
 
-      expect(
-        game.playerOrNull!.opacity,
-        1,
-        reason: 'yeni oyunda gemi gorunur olmali',
-      );
-      expect(
-        game.world.children.whereType<ExplosionComponent>(),
-        isEmpty,
-        reason: 'onceki oyunun patlamalari yeni oyuna sarkmamali',
-      );
-    });
+        expect(
+          game.playerOrNull!.opacity,
+          1,
+          reason: 'yeni oyunda gemi gorunur olmali',
+        );
+        expect(
+          game.world.children.whereType<ExplosionComponent>(),
+          isEmpty,
+          reason: 'onceki oyunun patlamalari yeni oyuna sarkmamali',
+        );
+      },
+    );
   });
 }

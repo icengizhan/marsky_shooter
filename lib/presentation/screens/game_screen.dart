@@ -47,16 +47,15 @@ class _GameScreenState extends ConsumerState<GameScreen>
     // Riverpod 3'te `ref.listen`in `fireImmediately` secenegi YOKTUR.
     // `listenManual` aboneligi widget yasam dongusune baglar ve ayar diskten
     // okundugu anda ilk degeri de uygular -- kullanicinin dokunmasini beklemez.
-    ref.listenManual<AsyncValue<bool>>(
-      soundEnabledProvider,
-      (AsyncValue<bool>? previous, AsyncValue<bool> next) {
-        final bool? isEnabled = next.value;
-        if (isEnabled != null) {
-          _game.audio.setMuted(!isEnabled);
-        }
-      },
-      fireImmediately: true,
-    );
+    ref.listenManual<AsyncValue<bool>>(soundEnabledProvider, (
+      AsyncValue<bool>? previous,
+      AsyncValue<bool> next,
+    ) {
+      final bool? isEnabled = next.value;
+      if (isEnabled != null) {
+        _game.audio.setMuted(!isEnabled);
+      }
+    }, fireImmediately: true);
   }
 
   @override

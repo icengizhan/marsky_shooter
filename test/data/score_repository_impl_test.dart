@@ -138,8 +138,6 @@ void main() {
 List<ScoreEntry> _decode(String? raw) {
   expect(raw, isNotNull, reason: 'depoya yazma yapilmali');
   return (jsonDecode(raw!) as List<dynamic>)
-      .map(
-        (dynamic item) => ScoreEntry.fromJson(item as Map<String, dynamic>),
-      )
+      .map((dynamic item) => ScoreEntry.fromJson(item as Map<String, dynamic>))
       .toList(growable: false);
 }

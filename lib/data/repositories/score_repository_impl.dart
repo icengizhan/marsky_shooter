@@ -56,9 +56,10 @@ class ScoreRepositoryImpl implements ScoreRepository {
 
     // En yeni kayit basa eklenir, liste sabit uzunlukta tutulur. Aksi halde
     // her oyunda buyuyen ve hic temizlenmeyen bir veri birikir.
-    final List<ScoreEntry> updated = <ScoreEntry>[entry, ...history]
-        .take(GameConfig.maxScoreHistoryEntries)
-        .toList(growable: false);
+    final List<ScoreEntry> updated = <ScoreEntry>[
+      entry,
+      ...history,
+    ].take(GameConfig.maxScoreHistoryEntries).toList(growable: false);
 
     final String encoded = jsonEncode(
       updated.map((ScoreEntry item) => item.toJson()).toList(growable: false),

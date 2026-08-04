@@ -15,27 +15,31 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('MarskyGame onLoad', () {
-    testWithGame<MarskyGame>('oyuncu, spawner, girdi ve arka plan dunyaya eklenir', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
+    testWithGame<MarskyGame>(
+      'oyuncu, spawner, girdi ve arka plan dunyaya eklenir',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
 
-      expect(game.playerOrNull, isNotNull);
-      expect(game.world.children.whereType<PlayerComponent>().length, 1);
-      expect(game.world.children.whereType<EnemySpawner>().length, 1);
-      expect(game.world.children.whereType<DragInputComponent>().length, 1);
-      expect(game.world.children.whereType<ParallaxComponent>().length, 1);
-    });
+        expect(game.playerOrNull, isNotNull);
+        expect(game.world.children.whereType<PlayerComponent>().length, 1);
+        expect(game.world.children.whereType<EnemySpawner>().length, 1);
+        expect(game.world.children.whereType<DragInputComponent>().length, 1);
+        expect(game.world.children.whereType<ParallaxComponent>().length, 1);
+      },
+    );
 
-    testWithGame<MarskyGame>('varliklar onbellege alinmis olur', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
+    testWithGame<MarskyGame>(
+      'varliklar onbellege alinmis olur',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
 
-      // Preload calistiysa sprite'lar onbellekte olmali.
-      expect(game.images.containsKey('player.png'), isTrue);
-      expect(game.images.containsKey('enemy.png'), isTrue);
-      expect(game.images.containsKey('bullet.png'), isTrue);
-    });
+        // Preload calistiysa sprite'lar onbellekte olmali.
+        expect(game.images.containsKey('player.png'), isTrue);
+        expect(game.images.containsKey('enemy.png'), isTrue);
+        expect(game.images.containsKey('bullet.png'), isTrue);
+      },
+    );
   });
 }

@@ -22,8 +22,7 @@ abstract final class EnemyAim {
     double deviationRadians = 0,
   }) {
     final Vector2 toTarget = targetPosition - spawnPosition;
-    final double angle =
-        atan2(toTarget.y, toTarget.x) + deviationRadians;
+    final double angle = atan2(toTarget.y, toTarget.x) + deviationRadians;
     return Vector2(cos(angle), sin(angle)) * speed;
   }
 }

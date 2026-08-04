@@ -13,99 +13,107 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Toplanabilir nesne', () {
-    testWithGame<MarskyGame>('oyuncuya temas edince toplanir ve puan verir', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
-      game.startGame();
+    testWithGame<MarskyGame>(
+      'oyuncuya temas edince toplanir ve puan verir',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
+        game.startGame();
 
-      final PlayerComponent player = game.playerOrNull!;
-      final int scoreBefore = game.score.points.value;
+        final PlayerComponent player = game.playerOrNull!;
+        final int scoreBefore = game.score.points.value;
 
-      // Nesne dogrudan oyuncunun uzerine konur.
-      final PickupComponent pickup = PickupComponent(
-        spawnPosition: player.position.clone(),
-      );
-      await game.world.add(pickup);
-      await game.ready();
+        // Nesne dogrudan oyuncunun uzerine konur.
+        final PickupComponent pickup = PickupComponent(
+          spawnPosition: player.position.clone(),
+        );
+        await game.world.add(pickup);
+        await game.ready();
 
-      game.update(0.001);
-      await game.ready();
+        game.update(0.001);
+        await game.ready();
 
-      expect(pickup.isCollected, isTrue);
-      expect(
-        game.score.points.value - scoreBefore,
-        GameConfig.scorePerPickupCollected,
-      );
-    });
+        expect(pickup.isCollected, isTrue);
+        expect(
+          game.score.points.value - scoreBefore,
+          GameConfig.scorePerPickupCollected,
+        );
+      },
+    );
 
-    testWithGame<MarskyGame>('toplanan nesne oyunu BITIRMEZ', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
-      game.startGame();
+    testWithGame<MarskyGame>(
+      'toplanan nesne oyunu BITIRMEZ',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
+        game.startGame();
 
-      await game.world.add(
-        PickupComponent(spawnPosition: game.playerOrNull!.position.clone()),
-      );
-      await game.ready();
-      game.update(0.001);
+        await game.world.add(
+          PickupComponent(spawnPosition: game.playerOrNull!.position.clone()),
+        );
+        await game.ready();
+        game.update(0.001);
 
-      expect(
-        game.phase.value,
-        GamePhase.playing,
-        reason: 'nesne toplamak dusmana carpmak gibi olmamali',
-      );
-    });
+        expect(
+          game.phase.value,
+          GamePhase.playing,
+          reason: 'nesne toplamak dusmana carpmak gibi olmamali',
+        );
+      },
+    );
 
-    testWithGame<MarskyGame>('cift sayim olmaz (ayni nesne iki kez puan vermez)', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
-      game.startGame();
+    testWithGame<MarskyGame>(
+      'cift sayim olmaz (ayni nesne iki kez puan vermez)',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
+        game.startGame();
 
-      final PickupComponent pickup = PickupComponent(
-        spawnPosition: game.playerOrNull!.position.clone(),
-      );
-      await game.world.add(pickup);
-      await game.ready();
+        final PickupComponent pickup = PickupComponent(
+          spawnPosition: game.playerOrNull!.position.clone(),
+        );
+        await game.world.add(pickup);
+        await game.ready();
 
-      final int before = game.score.points.value;
-      game.update(0.001);
-      game.update(0.001);
-      await game.ready();
+        final int before = game.score.points.value;
+        game.update(0.001);
+        game.update(0.001);
+        await game.ready();
 
-      expect(
-        game.score.points.value - before,
-        GameConfig.scorePerPickupCollected,
-      );
-    });
+        expect(
+          game.score.points.value - before,
+          GameConfig.scorePerPickupCollected,
+        );
+      },
+    );
 
-    testWithGame<MarskyGame>('asagi iner ve ekran altinda temizlenir', createSilentGame, (
-      MarskyGame game,
-    ) async {
-      await game.ready();
-      game.startGame();
+    testWithGame<MarskyGame>(
+      'asagi iner ve ekran altinda temizlenir',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
+        game.startGame();
 
-      final PickupComponent pickup = PickupComponent(
-        spawnPosition: Vector2(60, GameConfig.designHeight - 40),
-      );
-      await game.world.add(pickup);
-      await game.ready();
+        final PickupComponent pickup = PickupComponent(
+          spawnPosition: Vector2(60, GameConfig.designHeight - 40),
+        );
+        await game.world.add(pickup);
+        await game.ready();
 
-      final double startY = pickup.position.y;
-      advance(game, 0.1);
-      expect(pickup.position.y, greaterThan(startY), reason: 'asagi inmeli');
+        final double startY = pickup.position.y;
+        advance(game, 0.1);
+        expect(pickup.position.y, greaterThan(startY), reason: 'asagi inmeli');
 
-      advance(game, 2);
-      await game.ready();
+        advance(game, 2);
+        await game.ready();
 
-      expect(
-        pickup.isMounted,
-        isFalse,
-        reason: 'ekran disina cikan nesne temizlenmeli',
-      );
-    });
+        expect(
+          pickup.isMounted,
+          isFalse,
+          reason: 'ekran disina cikan nesne temizlenmeli',
+        );
+      },
+    );
 
     testWithGame<MarskyGame>('oynanista nesne olusur', createSilentGame, (
       MarskyGame game,
