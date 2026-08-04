@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/white" />
+<!--
+  Acilis (splash) ekrani zemini.
 
-    <!-- You can insert your own image assets here -->
-    <!-- <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@mipmap/launch_image" />
-    </item> -->
+  Flutter'in varsayilani `@android:color/white`ti: karanlik bir uzay oyununda
+  her acilista goz tirmalayan bir BEYAZ PARLAMA olusuyordu. Oyunun uzay
+  rengiyle ayni renk kullanilarak acilis kesintisiz hale getirildi.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/marsky_space" />
 </layer-list>

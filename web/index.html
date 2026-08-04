@@ -31,6 +31,21 @@
 
   <title>MARSKY</title>
   <link rel="manifest" href="manifest.json">
+
+  <!--
+    Flutter ilk kareyi cizene kadar tarayici varsayilan BEYAZ zemini gosterir.
+    Karanlik bir oyunda bu goz tirmalayan bir parlama olusturur; sayfa zemini
+    oyunun uzay rengine (GameConfig.spaceColor) sabitlenerek acilis kesintisiz
+    hale getirildi. Android tarafinda ayni is launch_background.xml ile yapiliyor.
+  -->
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #05060F;
+    }
+  </style>
 </head>
 <body>
   <!--

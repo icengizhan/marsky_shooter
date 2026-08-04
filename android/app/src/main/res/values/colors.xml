@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Oyunun uzay zemin rengi. GameConfig.spaceColor (0xFF05060F) ile AYNI olmali.
+  Acilis ekrani, pencere zemini ve Flutter tuvali ayni rengi kullanmazsa
+  uygulama acilirken bir renk sicramasi (flash) gorunur.
+-->
+<resources>
+    <color name="marsky_space">#FF05060F</color>
+</resources>

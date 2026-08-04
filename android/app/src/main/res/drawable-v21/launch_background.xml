@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!--
+  Acilis ekrani zemini (API 21+). Varsayilan `?android:colorBackground` sistem
+  temasina gore beyaz olabiliyordu; oyunun uzay rengi sabitlendi.
+  Gerekce icin bkz. drawable/launch_background.xml
+-->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="?android:colorBackground" />
-
-    <!-- You can insert your own image assets here -->
-    <!-- <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@mipmap/launch_image" />
-    </item> -->
+    <item android:drawable="@color/marsky_space" />
 </layer-list>
