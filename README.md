@@ -4,6 +4,13 @@ Flutter ve **Flame** oyun motoruyla geliştirilmiş 2D top-down shooter.
 Tüm oynanış Flame Component System üzerinde çalışır; Flutter widget'ları yalnızca
 menü / HUD / duraklat / oyun bitti ekranlarında (`game.overlays`) kullanılır.
 
+<p align="center">
+  <img src="docs/screenshots/gameplay.gif" width="280" alt="MARSKY oynanış kaydı">
+</p>
+
+<p align="center"><em>Android emülatöründe gerçek oynanış kaydı — ana menü, sürükleme ile
+kontrol, otomatik ateş ve toplanabilir elmaslar.</em></p>
+
 | Ana Menü | Oynanış | Oyun Bitti |
 |---|---|---|
 | ![Ana menü](docs/screenshots/01-main-menu.png) | ![Oynanış](docs/screenshots/02-gameplay.png) | ![Oyun bitti](docs/screenshots/03-game-over.png) |
@@ -16,6 +23,8 @@ menü / HUD / duraklat / oyun bitti ekranlarında (`game.overlays`) kullanılır
 - **Ateş otomatiktir** (0,22 saniyede bir mermi)
 - Düşmanlar yukarıdan, oyuncuya doğru **açılı** iner — vurmak için yatayda hizalanmak gerekir
 - **Bir düşmana çarparsan oyun biter** (can yok, tek temas)
+- **Geri tuşu bir kademe yukarı çıkarır:** oynanış → duraklat → ana menü → çıkış
+- Uygulama arka plana alınırsa oyun **otomatik duraklar** (gelen arama yüzünden haksız ölüm olmaz)
 
 ### Puan
 
@@ -46,7 +55,7 @@ flutter run -d <android-cihaz>   # hedef platform
 
 ```bash
 flutter analyze                  # statik analiz — sıfır uyarı olmalı
-flutter test                     # 53 test
+flutter test                     # 67 test
 flutter build apk --release      # teslim APK'sı
 ```
 
@@ -107,7 +116,7 @@ Her maddenin kodda nerede karşılandığı ve **neden bu şekilde** yapıldığ
 - ✅ Riverpod ile oyun dışı state yönetimi
 - ✅ Asset preload — `onLoad`'da bir kez, component'ler önbellekten okur
 - ✅ Clean Architecture + SOLID — katmanlar tek yönlü bağımlı, `domain/` framework bağımsız
-- ✅ 53 test, `flutter analyze` sıfır uyarı (strict-casts / strict-inference / strict-raw-types)
+- ✅ 67 test, `flutter analyze` sıfır uyarı (strict-casts / strict-inference / strict-raw-types)
 
 `ARCHITECTURE.md` ayrıca geliştirme sırasında **ölçümle bulunan** dört gerçek problemi ve
 çözümlerini içerir (hitbox kapsanma hatası, sesin testi engellemesi, overlay bağımlılığı,
