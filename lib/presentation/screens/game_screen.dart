@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/config/game_config.dart';
 import '../../game/marsky_game.dart';
 import '../../game/state/game_overlays.dart';
+import '../../game/state/game_phase.dart';
 import '../overlays/game_over_overlay.dart';
 import '../overlays/hud_overlay.dart';
 import '../overlays/main_menu_overlay.dart';
@@ -81,19 +82,42 @@ class _GameScreenState extends ConsumerState<GameScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: GameConfig.spaceColor,
-      body: GameWidget<MarskyGame>(
-        game: _game,
-        // Overlay kimlikleri ile widget'lar burada eslesir. Oyun motoru
-        // yalnizca kimlikleri bilir, widget'lari bilmez.
-        overlayBuilderMap: <String, OverlayWidgetBuilder<MarskyGame>>{
-          GameOverlays.mainMenu: (BuildContext context, MarskyGame game) =>
-              MainMenuOverlay(game: game),
-          GameOverlays.hud: (BuildContext context, MarskyGame game) =>
-              HudOverlay(game: game),
-          GameOverlays.pause: (BuildContext context, MarskyGame game) =>
-              PauseOverlay(game: game),
-          GameOverlays.gameOver: (BuildContext context, MarskyGame game) =>
-              GameOverOverlay(game: game),
+      // Geri tusunu ele almak icin oyunun durumunu bilmek gerekiyor: sistem
+      // cikisina YALNIZCA ana menude izin verilir.
+      body: ValueListenableBuilder<GamePhase>(
+        valueListenable: _game.phase,
+        // `child` parametresi onemli: GameWidget burada BIR KEZ kurulur ve
+        // durum her degistiginde yeniden kurulmaz. `builder` icine yazilsaydi
+        // her menu/duraklat gecisinde oyun widget'i bastan insa edilirdi.
+        child: GameWidget<MarskyGame>(
+          game: _game,
+          // Overlay kimlikleri ile widget'lar burada eslesir. Oyun motoru
+          // yalnizca kimlikleri bilir, widget'lari bilmez.
+          overlayBuilderMap: <String, OverlayWidgetBuilder<MarskyGame>>{
+            GameOverlays.mainMenu: (BuildContext context, MarskyGame game) =>
+                MainMenuOverlay(game: game),
+            GameOverlays.hud: (BuildContext context, MarskyGame game) =>
+                HudOverlay(game: game),
+            GameOverlays.pause: (BuildContext context, MarskyGame game) =>
+                PauseOverlay(game: game),
+            GameOverlays.gameOver: (BuildContext context, MarskyGame game) =>
+                GameOverOverlay(game: game),
+          },
+        ),
+        builder: (BuildContext context, GamePhase phase, Widget? child) {
+          return PopScope(
+            // Yalnizca ana menude geri tusu uygulamayi kapatabilir.
+            canPop: phase == GamePhase.menu,
+            onPopInvokedWithResult: (bool didPop, Object? result) {
+              // didPop true ise sistem cikisi zaten gerceklesti (menudeydik).
+              if (didPop) {
+                return;
+              }
+              // Karari oyun verir: oynanis -> duraklat -> menu.
+              _game.handleBackRequest();
+            },
+            child: child!,
+          );
         },
       ),
     );

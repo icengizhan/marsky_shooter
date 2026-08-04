@@ -203,6 +203,33 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
     }
   }
 
+  /// Sistem geri tusu / geri jesti istegi.
+  ///
+  /// Geri tusu BIR KADEME YUKARI cikarir:
+  /// `oynanis -> duraklat -> ana menu -> uygulamadan cikis`
+  ///
+  /// Neden boyle: geri tusu ele alinmazsa oyun ortasinda basildiginda uygulama
+  /// kapanir ve skor kaybolur -- mobil bir oyunda kabul edilemez. Duraklatmada
+  /// geri = "devam et" yapilsaydi oyuncu `oynanis <-> duraklat` arasinda
+  /// sikisip kalir, geri tusuyla uygulamadan hic cikamazdi.
+  ///
+  /// `true` donerse cagiran taraf sistem cikisina izin verir.
+  bool handleBackRequest() {
+    switch (phase.value) {
+      case GamePhase.playing:
+        togglePause();
+        return false;
+      case GamePhase.paused:
+        goToMenu();
+        return false;
+      case GamePhase.gameOver:
+        goToMenu();
+        return false;
+      case GamePhase.menu:
+        return true;
+    }
+  }
+
   /// Sahneyi bosaltir ve sayaclari sifirlar.
   void _resetScene() {
     // Kalan dusman ve mermiler temizlenmezse yeni oyun, onceki oyunun
