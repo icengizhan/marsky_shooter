@@ -58,7 +58,7 @@ flutter run -d <android-cihaz>   # hedef platform
 ```bash
 flutter analyze                  # statik analiz — sıfır uyarı olmalı
 flutter test                     # 67 test
-flutter build apk --release      # teslim APK'sı
+flutter build apk --release --split-per-abi   # teslim APK'ları (~16 MB / ABI)
 ```
 
 Oyun **dikey (portrait)** moda kilitlidir ve 480×800 referans çözünürlüğe göre kurgulanmıştır;
@@ -118,7 +118,9 @@ Her maddenin kodda nerede karşılandığı ve **neden bu şekilde** yapıldığ
 - ✅ Riverpod ile oyun dışı state yönetimi
 - ✅ Asset preload — `onLoad`'da bir kez, component'ler önbellekten okur
 - ✅ Clean Architecture + SOLID — katmanlar tek yönlü bağımlı, `domain/` framework bağımsız
-- ✅ 67 test, `flutter analyze` sıfır uyarı (strict-casts / strict-inference / strict-raw-types)
+- ✅ 97 test, `flutter analyze` sıfır uyarı (strict-casts / strict-inference / strict-raw-types)
+- ✅ Object pooling, eşzamanlı düşman üst sınırı ve kare süresi ölçümü — sayılar
+  [ARCHITECTURE.md §7](ARCHITECTURE.md)'de
 
 `ARCHITECTURE.md` ayrıca geliştirme sırasında **ölçümle bulunan** dört gerçek problemi ve
 çözümlerini içerir (hitbox kapsanma hatası, sesin testi engellemesi, overlay bağımlılığı,

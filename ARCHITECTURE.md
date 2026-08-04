@@ -385,9 +385,48 @@ Bu doğrultuda aşağıdakiler **kasıtlı olarak** yapılmadı:
 - **Windows desktop hedefi** — Visual Studio C++ araç zinciri gerektirdiği için kurulmadı. Hedef
   platform Android; geliştirme sırasında hızlı iterasyon için web (Chrome) kullanıldı.
 
-### Henüz doğrulanmamış olan
+---
 
-Dürüstlük gereği: **profil modunda kare hızı ölçümü yapılmadı.** "Performanslı" iddiası yapısal
-kararlara dayanıyor (§3.5, §3.6, §3.7) ve ekranda ~25 component ile Flame için düşük bir yük
-bekleniyor, ancak sayısal bir FPS ölçümü henüz yok. Test yalnızca emülatörde yapıldı; fiziksel
-cihazda dokunma hissi ve gerçek kare hızı ölçülmedi.
+## 7. Kare Süresi Ölçümü
+
+`FrameReport` (`lib/core/diagnostics/frame_report.dart`) Flutter'ın `FrameTiming` verisini toplayıp
+periyodik özet basar. **Yalnızca profil modunda** çalışır; `kProfileMode` derleme zamanında bilindiği
+için release derlemesinde kodun tamamı elenir.
+
+> `dumpsys gfxinfo` bu iş için kullanılamaz: o araç Android'in View sistemi (HWUI) karelerini sayar,
+> Flutter ise kendi motoruyla çizip bu hattı büyük ölçüde atlar. Denendi ve
+> `Failure while dumping the app` döndürdü.
+
+**Ölçüm ortamı:** Pixel 7 emülatörü (API 36, WHPX), profil derlemesi, 1080×2400.
+Her satır ~300 karelik (~5 sn) bir pencerenin özeti.
+
+| Senaryo | p50 | p90 | Bütçeyi (16,67 ms) aşan |
+|---|---|---|---|
+| **Oynanış** (~10 düşman, ~8 mermi, çarpışma taraması) | 22,29 ms | 24,39 ms | %79–100 |
+| **Ana menü** (yalnızca 2 parallax katmanı, oynanış yok) | 23,11 ms | 25,14 ms | %94–100 |
+
+**Yorum:** Menü ile oynanış arasında **ölçülebilir fark yok** (22,3 ms vs 23,1 ms). Neredeyse boş
+bir sahne de bütçeyi aştığı için ~22 ms'lik taban **emülatörün kendi maliyetidir**, oyunun yükü
+değil. Bunun olumlu tarafı şudur: tam oynanış — 10 düşman, 8 mermi, aktif çarpışma taraması,
+parallax ve nesne havuzu — boş bir menüye göre ek bir maliyet getirmiyor. Yani kare bütçesini
+tüketen şey oyun mantığımız değil.
+
+**Dürüstlük notu:** bu sayılar **60 FPS iddiasını desteklemez ve öyle bir iddia edilmiyor.**
+Emülatör tabanı ~43 FPS'e karşılık geliyor. Gerçek kare hızı ancak **fiziksel bir cihazda**
+ölçülebilir ve bu ölçüm yapılmadı. Aynı şekilde dokunma hissi de yalnızca emülatörde denendi.
+
+---
+
+## 8. Paket Boyutu
+
+`flutter build apk --release --split-per-abi`
+
+| Çıktı | Boyut |
+|---|---|
+| Tek paket (tüm ABI'ler) | 45,0 MB |
+| `arm64-v8a` (güncel telefonlar) | **16,3 MB** |
+| `armeabi-v7a` | 13,7 MB |
+| `x86_64` (emülatör) | 17,7 MB |
+
+Cihaz başına tek ABI indiği için gerçek kurulum boyutu ~16 MB. Teslimde ABI'ye ayrılmış paketler
+verilir.
