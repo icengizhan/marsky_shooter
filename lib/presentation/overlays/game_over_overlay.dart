@@ -20,7 +20,7 @@ import 'widgets/overlay_panel.dart';
 /// test edilirken disk/eklenti bagimliligi olusmaz.
 ///
 /// Skor DOKUMU de burada gosterilir: oyuncu puanin nereden geldigini,
-/// ogrenmeye en meraklı oldugu anda gorur.
+/// ogrenmeye en merakli oldugu anda gorur.
 class GameOverOverlay extends ConsumerStatefulWidget {
   const GameOverOverlay({required this.game, super.key});
 

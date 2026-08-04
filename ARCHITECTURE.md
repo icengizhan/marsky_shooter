@@ -428,6 +428,18 @@ depo (`KeyValueStore`) dışarıdan verilir. Üçü de somut bir problemi çöze
 
 Sıkı statik analiz: `strict-casts`, `strict-inference`, `strict-raw-types` + 10 ek lint kuralı.
 
+### Yorum yazım kuralı
+
+Kaynak dosyalardaki yorumlar **ASCII Türkçe** yazılır (`carpisma`, `bilincli`), iki istisna ile:
+
+1. **Case PDF'inden birebir alıntılar** kaynağın kendi imlasıyla korunur — bir belgeyi
+   alıntılarken metnini değiştirmek doğru olmaz.
+2. **Kullanıcının gördüğü metinler** (`OYUN BİTTİ`, `EN YÜKSEK SKOR`) her zaman tam Türkçedir;
+   arayüzde imla kısaltması yapılmaz.
+
+Yani kod içinde iki yazım birlikte görünür ve bu bilinçlidir: ASCII olan geliştiriciye,
+tam Türkçe olan ya kaynağa ya son kullanıcıya aittir.
+
 ---
 
 ## 6. Bilinçli Olarak Kapsam Dışı
