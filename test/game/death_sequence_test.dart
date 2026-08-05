@@ -95,7 +95,7 @@ void main() {
         await game.ready();
         game.startGame();
 
-        game.handlePlayerHit();
+        killPlayerIntoDeathWindow(game);
         await game.ready();
 
         expect(game.world.children.whereType<ExplosionComponent>(), isNotEmpty);
@@ -116,7 +116,7 @@ void main() {
         advance(game, 2);
         final int scoreAtDeath = game.score.points.value;
 
-        game.handlePlayerHit();
+        killPlayerIntoDeathWindow(game);
 
         // Pencere ortasi: efektler oynayabilsin diye motor CALISIR...
         advance(game, GameConfig.deathAnimationDuration / 2);
@@ -152,7 +152,7 @@ void main() {
       (MarskyGame game) async {
         await game.ready();
         game.startGame();
-        game.handlePlayerHit();
+        killPlayerIntoDeathWindow(game);
 
         // Olum animasyonu sirasinda duraklat denenirse gecis askida kalmamali.
         game.togglePause();
@@ -176,7 +176,7 @@ void main() {
       game.startGame();
       final Vector2 cameraBefore = game.camera.viewfinder.position.clone();
 
-      game.handlePlayerHit();
+      killPlayerIntoDeathWindow(game);
       advance(game, GameConfig.deathAnimationDuration + 0.3);
 
       // `alternate: true` sayesinde efekt ileri gidip GERI DONER. Tek yonlu bir

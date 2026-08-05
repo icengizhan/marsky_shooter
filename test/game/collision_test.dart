@@ -47,15 +47,12 @@ void main() {
     );
 
     testWithGame<MarskyGame>(
-      'oyuncu dusmana carparsa oyun biter ve motor durur',
+      'oyuncu dusmana carparsa can gider ama oyun DEVAM eder',
       createSilentGame,
       (MarskyGame game) async {
         await game.ready();
-
-        // Oyun ana menude baslar (case PDF §2.B); oynanisa gecilir.
-        expect(game.phase.value, GamePhase.menu);
         game.startGame();
-        expect(game.phase.value, GamePhase.playing);
+        expect(game.run.lives.value, GameConfig.playerMaxLives);
 
         // Dusman dogrudan oyuncunun uzerine konur.
         final Vector2 playerPosition = game.playerOrNull!.position.clone();
@@ -69,8 +66,79 @@ void main() {
 
         game.update(0.001);
 
-        // Carpisma aninda henuz "oyun bitti" gelmez: olum animasyonu penceresi
-        // boyunca motor calisir ki patlama ve sarsinti gorunebilsin.
+        expect(
+          game.run.lives.value,
+          GameConfig.playerMaxLives - 1,
+          reason: 'bir can gitmeli',
+        );
+        expect(
+          game.phase.value,
+          GamePhase.playing,
+          reason: 'can varken oyun bitmemeli',
+        );
+        expect(
+          game.isPlaying,
+          isTrue,
+          reason: 'can varken oynanis mantigi calismaya devam etmeli',
+        );
+        expect(
+          game.playerOrNull!.isInvulnerable,
+          isTrue,
+          reason: 'vurustan sonra kisa dokunulmazlik baslamali',
+        );
+      },
+    );
+
+    testWithGame<MarskyGame>(
+      'AYNI KAREDE iki dusman carparsa yalnizca bir can gider',
+      createSilentGame,
+      (MarskyGame game) async {
+        // Dokunulmazlik `handlePlayerHit` icinde SENKRON basladigi icin ikinci
+        // carpisma geri cagrisi oyuncuyu zaten dokunulmaz gorur. Bu olmasa
+        // oyuncu bir dusman kumesine girdiginde tum canlarini tek karede
+        // kaybeder ve ne oldugunu anlamaz.
+        await game.ready();
+        game.startGame();
+
+        final Vector2 playerPosition = game.playerOrNull!.position.clone();
+        await game.world.addAll(<EnemyComponent>[
+          EnemyComponent(
+            spawnPosition: playerPosition,
+            velocity: Vector2.zero(),
+          ),
+          EnemyComponent(
+            spawnPosition: playerPosition.clone(),
+            velocity: Vector2.zero(),
+          ),
+        ]);
+        await game.ready();
+
+        game.update(0.001);
+
+        expect(
+          game.run.lives.value,
+          GameConfig.playerMaxLives - 1,
+          reason: 'iki temas olsa da tek can gitmeli',
+        );
+      },
+    );
+
+    testWithGame<MarskyGame>(
+      'canlar bitince oyun biter ve motor durur',
+      createSilentGame,
+      (MarskyGame game) async {
+        await game.ready();
+
+        // Oyun ana menude baslar (case PDF §2.B); oynanisa gecilir.
+        expect(game.phase.value, GamePhase.menu);
+        game.startGame();
+        expect(game.phase.value, GamePhase.playing);
+
+        killPlayerIntoDeathWindow(game);
+
+        // Son can gittigi anda henuz "oyun bitti" gelmez: olum animasyonu
+        // penceresi boyunca motor calisir ki patlama ve sarsinti gorunebilsin.
+        expect(game.run.lives.value, 0);
         expect(game.phase.value, GamePhase.playing);
         expect(game.paused, isFalse, reason: 'efektler oynayabilmeli');
         expect(

@@ -150,7 +150,7 @@ void main() {
         game.togglePause();
         // Olum animasyonu penceresi boyunca HUD gorunur kalir; "oyun bitti"
         // ekrani pencere bitince gelir.
-        game.handlePlayerHit();
+        killPlayerIntoDeathWindow(game);
         expect(
           game.overlays.activeOverlays,
           <String>[GameOverlays.hud],

@@ -32,6 +32,13 @@ class PlayerComponent extends SpriteComponent
 
   double _fireCooldown = 0;
 
+  /// Vurus sonrasi kalan dokunulmazlik suresi. Sifirdan buyukse gemi hasar
+  /// almaz ve yanip soner.
+  double _invulnerability = 0;
+
+  /// Su an dokunulmaz mi? Carpisma bunu sorar.
+  bool get isInvulnerable => _invulnerability > 0;
+
   /// Senkron `onLoad` (bilincli) -- gerekcesi `ExplosionComponent`'te anlatildi.
   @override
   void onLoad() {
@@ -76,8 +83,17 @@ class PlayerComponent extends SpriteComponent
     );
     _target.setFrom(position);
     _fireCooldown = 0;
-    // Olum aninda gizlenmis olabilir; yeniden gorunur yapilir.
+    _invulnerability = 0;
+    // Olum aninda gizlenmis veya yanip sonerken yarim saydam kalmis olabilir.
     opacity = 1;
+  }
+
+  /// Vurus alindi: kisa bir dokunulmazlik penceresi baslatir.
+  ///
+  /// Pencere olmadan oyuncu bir dusman kumesinin icinde tum canlarini tek
+  /// karede kaybeder ve ne oldugunu anlamaz.
+  void startInvulnerability() {
+    _invulnerability = GameConfig.invulnerabilityDuration;
   }
 
   /// Olum aninda gemiyi gizler.
@@ -87,6 +103,11 @@ class PlayerComponent extends SpriteComponent
   /// cagrisi, hitbox) yeniden kurulmasi gerekirdi. Gizlemek daha basit ve
   /// hatasiz.
   void hideForDeath() {
+    // Dokunulmazlik sayaci SIFIRLANMALI. Aksi halde son candan once alinan
+    // vurusun yanip sonme mantigi olum penceresinde de calismaya devam eder ve
+    // `opacity`yi 1'e geri cekerek gizlemeyi bozar -- yani patlama efektinin
+    // ortasinda olu gemi tekrar gorunur. Mevcut regresyon testi bunu yakaladi.
+    _invulnerability = 0;
     opacity = 0;
   }
 
@@ -109,9 +130,21 @@ class PlayerComponent extends SpriteComponent
     super.onCollisionStart(intersectionPoints, other);
 
     if (other is EnemyComponent) {
-      // Oyuncu "ne olacagina" karar vermez, yalnizca olayi bildirir. Oyun
-      // bitirme kararini kok sinif verir -- boylece can sistemi/kalkan gibi bir
-      // mekanik eklenmek istendiginde bu sinif degismez.
+      // Dokunulmazlik penceresindeyken temas yok sayilir. Zaten olmekte olan
+      // bir dusman da hasar vermez (ayni karede iki kez tetiklenmesin).
+      if (isInvulnerable || other.isDying) {
+        return;
+      }
+
+      // Carpan dusman YOK EDILIR. Yapilmazsa oyuncu dusmanin icinde kalir,
+      // dokunulmazlik biter bitmez ayni dusman tekrar vurur ve oyuncu neden
+      // ust uste can kaybettigini anlamaz. Puan verilmez: carpismak bir isabet
+      // degil, bir hatadir.
+      other.takeHit();
+
+      // Oyuncu "ne olacagina" karar vermez, yalnizca olayi bildirir. Can
+      // dusurme ve oyun bitirme karari kok sinifta. Bu ayrim sayesinde can
+      // sistemi eklenirken bu sinifta yalnizca dokunulmazlik kontrolu degisti.
       game.handlePlayerHit();
       return;
     }
@@ -119,6 +152,10 @@ class PlayerComponent extends SpriteComponent
     if (other is PickupComponent && !other.isCollected) {
       other.collect();
       game.score.addPickupCollected();
+      // Elmas artik yalnizca puan degil GUC veriyor: silah bir kademe yukselir.
+      // Bu, yukari cikip elmasi almayi bir puan tercihi olmaktan cikarip
+      // gercek bir yatirima donusturuyor -- oyunun tek risk/odul karari buydu.
+      game.run.upgradeWeapon();
       game.audio.playPickup();
     }
   }
@@ -126,8 +163,32 @@ class PlayerComponent extends SpriteComponent
   @override
   void update(double dt) {
     super.update(dt);
+    _updateInvulnerability(dt);
     _followTarget(dt);
     _updateFiring(dt);
+  }
+
+  /// Dokunulmazlik sayacini isletir ve gemiyi yanip sondurur.
+  ///
+  /// Yanip sonme bir efekt/animasyon component'i ile degil `opacity` uzerinden
+  /// yapiliyor: efekt eklemek yeniden baslatmada temizlenmesi gereken ayri bir
+  /// nesne olusturur. Burada durum tek sayida (`_invulnerability`) toplaniyor,
+  /// `resetToStart` onu sifirlayinca gorunum de kendiliginden duzeliyor.
+  void _updateInvulnerability(double dt) {
+    if (_invulnerability <= 0) {
+      return;
+    }
+    _invulnerability -= dt;
+    if (_invulnerability <= 0) {
+      _invulnerability = 0;
+      opacity = 1;
+      return;
+    }
+    // Kalan sureye gore aç/kapa: tam saydam yapilmiyor (0,35) cunku oyuncunun
+    // gemisini tamamen kaybetmesi kontrolu zorlastirir.
+    final int blink =
+        (_invulnerability * GameConfig.invulnerabilityBlinksPerSecond).floor();
+    opacity = blink.isEven ? 0.35 : 1.0;
   }
 
   void _followTarget(double dt) {
@@ -162,22 +223,50 @@ class PlayerComponent extends SpriteComponent
     if (_fireCooldown > 0) {
       return;
     }
-    _fireCooldown = GameConfig.fireCooldown;
+    // Ates araligini SILAH SEVIYESI belirler; son seviyede kisalir.
+    // Deger `RunState`ten okunuyor, burada tekrar hesaplanmiyor: silah
+    // kurallari tek yerde dursun.
+    _fireCooldown = game.run.fireCooldown;
     _fire();
   }
 
+  /// Silah seviyesine gore bir veya birden fazla mermi atar.
+  ///
+  /// Yatay sapma listesi seviyeden TURETILIR, `if/else` zinciriyle yazilmaz:
+  /// yeni bir seviye eklendiginde yalnizca [_spreadOffsets] degisir.
   void _fire() {
-    // Mermi HAVUZDAN alinir, `new` ile uretilmez: saniyede ~4,5 mermi
-    // olustugu icin geri donusum tahsis/cop toplama yukunu ortadan kaldirir.
-    final BulletComponent bullet = game.bulletPool.acquire()
-      ..reset(spawnPosition: position - Vector2(0, size.y / 2));
+    for (final double offsetX in _spreadOffsets(game.run.bulletsPerShot)) {
+      // Mermi HAVUZDAN alinir, `new` ile uretilmez: saniyede ~4,5 mermi
+      // olustugu icin geri donusum tahsis/cop toplama yukunu ortadan kaldirir.
+      final BulletComponent bullet = game.bulletPool.acquire()
+        ..reset(
+          spawnPosition: Vector2(position.x + offsetX, position.y - size.y / 2),
+        );
 
-    // Mermi oyuncunun DEGIL, oyuncunun ebeveyninin (dunyanin) cocugu olarak
-    // eklenir. Oyuncunun cocugu olsaydi, oyuncu ile birlikte hareket eder ve
-    // oyuncu yok edildiginde mermiler de aninda kaybolurdu.
-    parent?.add(bullet);
-    // Ses dogrudan FlameAudio'ya degil, oyunun ses kapisina gider. Boylece
+      // Mermi oyuncunun DEGIL, oyuncunun ebeveyninin (dunyanin) cocugu olarak
+      // eklenir. Oyuncunun cocugu olsaydi, oyuncu ile birlikte hareket eder ve
+      // oyuncu yok edildiginde mermiler de aninda kaybolurdu.
+      parent?.add(bullet);
+    }
+
+    // Ses mermi BASINA degil, ates basina bir kez calar: uc mermi icin uc ses
+    // ust uste binerse tek bir gurultuye donusur ve seviye atlama duyulmaz.
+    // Ses dogrudan FlameAudio'ya degil, oyunun ses kapisina gider; boylece
     // mute ayari ve testlerde sessiz mod tek yerden yonetilir.
     game.audio.playShoot();
+  }
+
+  /// [count] merminin merkeze gore yatay sapmalari.
+  ///
+  /// 1 -> tek merkez mermi
+  /// 2 -> merkezin iki yaninda simetrik ikili
+  /// 3 -> merkez + iki yan (yan mermiler daha genis acilir)
+  static Iterable<double> _spreadOffsets(int count) {
+    const double step = GameConfig.bulletSpreadOffset;
+    return switch (count) {
+      1 => const <double>[0],
+      2 => const <double>[-step / 2, step / 2],
+      _ => const <double>[-step, 0, step],
+    };
   }
 }

@@ -23,6 +23,7 @@ import 'managers/pickup_spawner.dart';
 import 'state/game_overlays.dart';
 import 'state/game_phase.dart';
 import 'state/game_score.dart';
+import 'state/run_state.dart';
 
 /// Oyunun kok (root) sinifi.
 ///
@@ -66,6 +67,10 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
 
   /// Anlik skor. HUD bunu `ValueListenableBuilder` ile dinler.
   final GameScore score = GameScore();
+
+  /// Kosunun gucu: kalan can, silah seviyesi, zorluk seviyesi.
+  /// Skordan ayri tutulmasinin gerekcesi [RunState] icinde yazili.
+  final RunState run = RunState();
 
   /// Mermi geri donusum havuzu (object pool).
   ///
@@ -127,6 +132,18 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
   /// olum gecisi test edilemez hale gelir. Duz bir sayac hem test edilebilir
   /// hem de kodun geri kalaniyla (ates ve spawn sayaclari) tutarlidir.
   double _deathCountdown = 0;
+
+  /// Bu kosuda aktif oynanista gecen sure. Zorluk ve seviye bundan turetilir.
+  double _elapsedPlaySeconds = 0;
+
+  /// Ekranda gosterilecek seviye numarasi; 0 ise banner gorunmez.
+  /// HUD bunu dinler.
+  final ValueNotifier<int> levelBanner = ValueNotifier<int>(0);
+
+  double _levelBannerCountdown = 0;
+
+  /// Seviye atlamasindan sonra uretimin duraklatildigi kalan sure.
+  double _spawnPause = 0;
 
   /// Oyuncu henuz yuklenmemis olabilecegi icin nullable dondurulur.
   /// Spawner dusman yonunu hesaplamak icin bunu kullanir.
@@ -226,8 +243,53 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
     // Skor yalnizca aktif oynanista artar; menude veya duraklatilmisken artmaz.
     if (isPlaying) {
       score.addSurvivalTime(dt);
+      _elapsedPlaySeconds += dt;
+      _updateLevel();
+      _tickLevelBanner(dt);
+      _tickSpawnPause(dt);
     }
   }
+
+  /// Seviye yazisinin ekranda kalma suresini isletir.
+  void _tickLevelBanner(double dt) {
+    if (_levelBannerCountdown <= 0) {
+      return;
+    }
+    _levelBannerCountdown -= dt;
+    if (_levelBannerCountdown <= 0) {
+      _levelBannerCountdown = 0;
+      levelBanner.value = 0;
+    }
+  }
+
+  /// Seviye atlamasindan sonraki uretim nefesini isletir.
+  void _tickSpawnPause(double dt) {
+    if (_spawnPause <= 0) {
+      return;
+    }
+    _spawnPause -= dt;
+    if (_spawnPause < 0) {
+      _spawnPause = 0;
+    }
+  }
+
+  /// Zorluk seviyesini gecen sureden turetir ve atlama anini isaretler.
+  ///
+  /// Seviye ayri bir sayacla sayilmiyor, `DifficultyCurve` ile AYNI kaynaktan
+  /// (gecen sure) hesaplaniyor. Iki kaynak olsa gosterge ile gercek zorluk
+  /// zamanla birbirinden ayrilabilirdi.
+  void _updateLevel() {
+    if (!run.syncLevel(_elapsedPlaySeconds)) {
+      return;
+    }
+    // Seviye atlandi: banner gorunur ve uretim kisa bir nefes alir.
+    levelBanner.value = run.level.value;
+    _levelBannerCountdown = GameConfig.levelBannerDuration;
+    _spawnPause = GameConfig.levelUpSpawnPause;
+  }
+
+  /// Uretimin duraklatildigi kalan sure. Spawner'lar bunu sorar.
+  bool get isSpawnPaused => _spawnPause > 0;
 
   /// Ana menuden veya oyun bitti ekranindan yeni oyun baslatir.
   void startGame() {
@@ -247,18 +309,26 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
 
   /// Oyuncu bir dusmana carptiginda [PlayerComponent] tarafindan cagrilir.
   ///
-  /// Iki asamali: once olum animasyonu oynar (patlama + ekran sarsintisi),
+  /// Can varsa: bir can gider, kisa dokunulmazlik baslar, oyun DEVAM eder.
+  /// Can bittiyse: olum animasyonu oynar (patlama + ekran sarsintisi) ve
   /// [GameConfig.deathAnimationDuration] sonra "oyun bitti" ekrani gelir.
+  /// AYNI KAREDE IKI DUSMAN CARPARSA NE OLUR: ikinci can gitmez.
+  /// Asagida `startInvulnerability()` SENKRON cagriliyor, yani ikinci carpisma
+  /// geri cagrisi ayni karede calistiginda `PlayerComponent.onCollisionStart`
+  /// oyuncuyu zaten dokunulmaz gorur ve bu metoda hic gelmez. Dokunulmazlik
+  /// kontrolunun carpisma katmaninda olmasinin sebebi bu; buraya konsa
+  /// "hasar uygula" cagrisi kendi kendini sessizce yutan bir metoda donusurdu.
   void handlePlayerHit() {
-    // Ayni karede birden fazla dusmana carpilabilir; ilk carpismadan sonra
-    // `isPlaying` false oldugu icin sonrakiler yok sayilir.
+    // Olum penceresi basladiktan sonra `isPlaying` false oldugu icin
+    // sonraki carpismalar yok sayilir.
     if (!isPlaying) {
       return;
     }
-    _isDying = true;
-    _deathCountdown = GameConfig.deathAnimationDuration;
-    audio.playExplosion();
 
+    // Can dusurulur ve silah bir kademe geriler (ceza hissedilir olmali).
+    final int remaining = run.takeHit();
+
+    audio.playExplosion();
     final PlayerComponent? player = _player;
     if (player != null) {
       world.add(
@@ -268,9 +338,20 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
           explosionColor: GameConfig.playerExplosionColor,
         ),
       );
-      player.hideForDeath();
     }
     _shakeCamera();
+
+    if (remaining > 0) {
+      // HAYATTA: gemi kalir, kisa sure dokunulmaz olur ve yanip soner.
+      player?.startInvulnerability();
+      return;
+    }
+
+    // CAN BITTI: olum penceresi baslar. Gemi agactan cikarilmaz, yalnizca
+    // gizlenir; gerekcesi `PlayerComponent.hideForDeath` icinde yazili.
+    _isDying = true;
+    _deathCountdown = GameConfig.deathAnimationDuration;
+    player?.hideForDeath();
     // Geri sayim `update` icinde isler; bkz. [_deathCountdown].
   }
 
@@ -384,11 +465,18 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
 
     _isDying = false;
     _deathCountdown = 0;
+    _elapsedPlaySeconds = 0;
+    _levelBannerCountdown = 0;
+    _spawnPause = 0;
+    levelBanner.value = 0;
     _player?.resetToStart();
     for (final IntervalSpawner spawner in _spawners) {
       spawner.reset();
     }
     score.reset();
+    // Can ve silah seviyesi de sifirlanir: yeni kosu bir onceki kosunun
+    // gucuyle baslamamali.
+    run.reset();
   }
 
   @override
@@ -397,6 +485,8 @@ class MarskyGame extends FlameGame with HasCollisionDetection {
     // bellekte kalirlar (bellek sizintisi).
     phase.removeListener(_syncOverlays);
     score.dispose();
+    run.dispose();
+    levelBanner.dispose();
     phase.dispose();
     super.onRemove();
   }

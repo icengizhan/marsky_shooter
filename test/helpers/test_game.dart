@@ -41,14 +41,30 @@ Future<void> advanceAsync(MarskyGame game, double seconds) async {
   }
 }
 
-/// Oyuncuyu oldurur ve olum animasyonu penceresinin gecmesini bekler.
+/// Oyuncunun TUM canlarini bitirir ve oyunu OLUM PENCERESINDE birakir.
 ///
-/// `handlePlayerHit()` ARTIK ANINDA "oyun bitti" durumuna gecmiyor: patlama ve
-/// ekran sarsintisi gorunebilsin diye [GameConfig.deathAnimationDuration]
-/// kadar bir pencere var (bkz. `MarskyGame.handlePlayerHit`). Testler bu
-/// pencereyi beklemezse `phase` hala `playing` gorunur.
+/// Can sistemi geldikten sonra tek `handlePlayerHit()` cagrisi oyunu bitirmez:
+/// oyuncunun [GameConfig.playerMaxLives] vurus hakki var, ilk vuruslar yalnizca
+/// can dusurur.
+///
+/// Vuruslar arasinda beklemek GEREKMEZ: dokunulmazlik kontrolu carpisma
+/// katmanindadir (`PlayerComponent.onCollisionStart`), `handlePlayerHit`in
+/// kendisinde degil. Yani dogrudan cagri her seferinde bir can dusurur.
+/// Bu ayrim bilincli -- gerekcesi `MarskyGame.handlePlayerHit` icinde yazili.
+void killPlayerIntoDeathWindow(MarskyGame game) {
+  for (int i = 0; i < GameConfig.playerMaxLives; i++) {
+    game.handlePlayerHit();
+  }
+}
+
+/// [killPlayerIntoDeathWindow] + olum animasyonu penceresinin gecmesini bekler.
+///
+/// Son can gittikten sonra "oyun bitti" ekrani
+/// [GameConfig.deathAnimationDuration] kadar gecikir; patlama ve ekran
+/// sarsintisi gorunebilsin diye. Testler bu pencereyi beklemezse `phase` hala
+/// `playing` gorunur.
 void killPlayerAndSettle(MarskyGame game) {
-  game.handlePlayerHit();
+  killPlayerIntoDeathWindow(game);
   // Pencerenin bittiginden emin olmak icin kucuk bir pay eklenir.
   advance(game, GameConfig.deathAnimationDuration + 0.1);
 }

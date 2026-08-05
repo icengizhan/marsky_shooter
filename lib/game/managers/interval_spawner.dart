@@ -62,6 +62,14 @@ abstract class IntervalSpawner extends Component
       return;
     }
 
+    // Seviye atlamasindan sonra kisa bir nefes: oyuncu "SEVIYE N" yazisini
+    // gorup yeni tempoya hazirlanir. Sayaclar TAMAMEN duraklar; yalnizca
+    // `spawnOne()` atlansa geri sayim birikir ve nefes biter bitmez birden
+    // fazla dusman ayni anda bosalirdi.
+    if (game.isSpawnPaused) {
+      return;
+    }
+
     _elapsed += dt;
     _countdown -= dt;
     if (_countdown > 0) {
