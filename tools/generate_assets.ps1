@@ -157,19 +157,87 @@ $c.Graphics.FillEllipse((New-Object System.Drawing.SolidBrush((Get-Rgb 160 250 2
 $c.Graphics.FillEllipse((New-Object System.Drawing.SolidBrush((Get-Rgb 255 255 255))), 6, 10, 4, 18)
 Save-Canvas -Canvas $c -Path (Join-Path $imagesDir 'bullet.png')
 
-# --- toplanabilir: altin elmas ---
+# --- toplanabilir: pirlanta kesimi altin tas ---
+#
+# NEDEN FASETLI: eskenar dortgen (dort kose, tek gradyan) ekranda "dondurulmus
+# kare" gibi okunur, tas gibi okunmaz. Gercek bir pirlanta kesiminin okunmasini
+# saglayan sey bicimden cok PARLAKLIK FARKLARIDIR: her fase isigi baska aciyla
+# yansitir. Bu yuzden silueti bir kez cizip icini gradyanla doldurmak yerine
+# her fase AYRI poligon olarak, ayri tonda doldurulur.
+#
+# Silüet klasik parlak kesim (brilliant cut): ustte duz TABLA, altinda genisleyen
+# TAC (crown), en genis yerde KUSAK (girdle), oradan tek noktaya inen PAVILYON.
+#
+# Renk altin/amber kalir, buz beyazi yapilmaz: mermi camgobegi, dusman magenta.
+# Ucuncu nesne turunun bir bakista ayirt edilmesi icin ucuncu bir renk gerekiyor
+# ve altin ayrica "deger" cagrisimi tasiyor (+100 puanlik nesne).
 $c = New-Canvas -Width 48 -Height 48
-[System.Drawing.PointF[]]$gem = @(
-    (New-Object System.Drawing.PointF(24, 3)),
-    (New-Object System.Drawing.PointF(45, 24)),
-    (New-Object System.Drawing.PointF(24, 45)),
-    (New-Object System.Drawing.PointF(3, 24))
+
+# Kusak (girdle) yuksekligi tepeden %38'de: tas boylece tepesi basik, alti uzun
+# gorunur -- gercek kesimlerin oranina yakin ve daha zarif durur.
+$gemTop = 7.0; $gemGirdle = 21.0; $gemBottom = 44.0
+$tableLeft = 17.0; $tableRight = 31.0
+$edgeLeft = 3.0; $edgeRight = 45.0
+$innerLeft = 15.0; $innerRight = 33.0
+$cx = 24.0
+
+function New-GemFacet {
+    param([float[]]$Coords)
+    $pts = New-Object 'System.Collections.Generic.List[System.Drawing.PointF]'
+    for ($i = 0; $i -lt $Coords.Count; $i += 2) {
+        $pts.Add((New-Object System.Drawing.PointF($Coords[$i], $Coords[$i + 1])))
+    }
+    return [System.Drawing.PointF[]]$pts.ToArray()
+}
+
+# Fase listesi: her satir bir poligon + o fasenin rengi. Sira onemli, sonrakiler
+# oncekilerin uzerine ciziliyor.
+$facets = @(
+    # Pavilyon (alt yariki) once cizilir: en koyu tonlar dipte toplanir.
+    @{ Pts = (New-GemFacet @($edgeLeft, $gemGirdle, $innerLeft, $gemGirdle, $cx, $gemBottom)); Color = (Get-Rgb 150 92 6) },
+    @{ Pts = (New-GemFacet @($innerRight, $gemGirdle, $edgeRight, $gemGirdle, $cx, $gemBottom)); Color = (Get-Rgb 116 68 4) },
+    # Pavilyonun ortasi ACIK: gercek taslarda isik tabandan geri doner ve
+    # merkezde parlak bir sutun olusur. Bu detay tasi "sasi" hissettiren sey.
+    @{ Pts = (New-GemFacet @($innerLeft, $gemGirdle, $innerRight, $gemGirdle, $cx, $gemBottom)); Color = (Get-Rgb 227 168 40) },
+    # Tac faseleri: solda aydinlik, sagda golge -> isik sol ustten geliyor.
+    @{ Pts = (New-GemFacet @($tableLeft, $gemTop, $innerLeft, $gemGirdle, $edgeLeft, $gemGirdle)); Color = (Get-Rgb 255 226 122) },
+    @{ Pts = (New-GemFacet @($tableRight, $gemTop, $edgeRight, $gemGirdle, $innerRight, $gemGirdle)); Color = (Get-Rgb 205 141 16) },
+    # Tabla (table): en ust ve en parlak yuzey.
+    @{ Pts = (New-GemFacet @($tableLeft, $gemTop, $tableRight, $gemTop, $innerRight, $gemGirdle, $innerLeft, $gemGirdle)); Color = (Get-Rgb 255 245 194) }
 )
-$brush = New-VerticalGradient -Width 48 -Height 48 -TopColor (Get-Rgb 255 240 150) -BottomColor (Get-Rgb 214 142 12)
-$pen = New-Object System.Drawing.Pen((Get-Rgb 82 50 4), 2.5)
-$c.Graphics.FillPolygon($brush, $gem)
-$c.Graphics.DrawPolygon($pen, $gem)
-$brush.Dispose(); $pen.Dispose()
+foreach ($f in $facets) {
+    $b = New-Object System.Drawing.SolidBrush($f.Color)
+    $c.Graphics.FillPolygon($b, $f.Pts)
+    $b.Dispose()
+}
+
+# Fase sinirlari: ince ve YARI SAFFAF cizgiler. Opak koyu cizgi kullanilsa
+# 48 pikselde tas "vitray" gibi gorunur; yari saffaf olan derinlik verir.
+$facetPen = New-Object System.Drawing.Pen((Get-Rgb 120 72 8 110), 1.0)
+$c.Graphics.DrawLine($facetPen, $innerLeft, $gemGirdle, $innerRight, $gemGirdle)
+$c.Graphics.DrawLine($facetPen, $tableLeft, $gemTop, $innerLeft, $gemGirdle)
+$c.Graphics.DrawLine($facetPen, $tableRight, $gemTop, $innerRight, $gemGirdle)
+$c.Graphics.DrawLine($facetPen, $innerLeft, $gemGirdle, $cx, $gemBottom)
+$c.Graphics.DrawLine($facetPen, $innerRight, $gemGirdle, $cx, $gemBottom)
+$facetPen.Dispose()
+
+# Dis hat: tasi uzay siyahindan ayirir. Silueti tek poligon olarak cizmek
+# kenarlarin duzgun (anti-aliased) kalmasini saglar.
+[System.Drawing.PointF[]]$gemOutline = (New-GemFacet @(
+    $tableLeft, $gemTop, $tableRight, $gemTop, $edgeRight, $gemGirdle,
+    $cx, $gemBottom, $edgeLeft, $gemGirdle
+))
+$pen = New-Object System.Drawing.Pen((Get-Rgb 74 44 2), 2.0)
+$c.Graphics.DrawPolygon($pen, $gemOutline)
+$pen.Dispose()
+
+# Parlama: tablanin sol ustunde kucuk beyaz bir dortgen. Tek bir yuksek isikli
+# nokta, tum yuzeyi aydinlatmaktan daha cok "cilali" hissi verir.
+[System.Drawing.PointF[]]$glint = (New-GemFacet @(19.0, 9.5, 25.0, 9.5, 23.0, 14.5, 18.0, 14.5))
+$glintBrush = New-Object System.Drawing.SolidBrush((Get-Rgb 255 255 255 205))
+$c.Graphics.FillPolygon($glintBrush, $glint)
+$glintBrush.Dispose()
+
 Save-Canvas -Canvas $c -Path (Join-Path $imagesDir 'pickup.png')
 
 # --- yildiz alani: parallax icin DOSENEBILIR (tileable) katman ---
