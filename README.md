@@ -118,7 +118,7 @@ Her maddenin kodda nerede karşılandığı ve **neden bu şekilde** yapıldığ
 - ✅ Riverpod ile oyun dışı state yönetimi
 - ✅ Asset preload — `onLoad`'da bir kez, component'ler önbellekten okur
 - ✅ Clean Architecture + SOLID — katmanlar tek yönlü bağımlı, `domain/` framework bağımsız
-- ✅ 107 test, satır kapsamı **%92,1**, `flutter analyze` sıfır uyarı (strict-casts / strict-inference / strict-raw-types)
+- ✅ 112 test, satır kapsamı **%90**, `flutter analyze` sıfır uyarı (strict-casts / strict-inference / strict-raw-types)
 - ✅ Katman sınırları **testle** korunuyor — `domain/`'e Flutter import edilirse CI kırılır
 - ✅ Object pooling, eşzamanlı düşman üst sınırı ve kare süresi ölçümü — sayılar
   [ARCHITECTURE.md §7](ARCHITECTURE.md)'de

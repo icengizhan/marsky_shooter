@@ -4,7 +4,7 @@ Bu doküman iki soruya cevap verir:
 1. Case PDF'indeki her teknik beklenti **kodda nerede** karşılandı?
 2. Alternatifler yerine **neden bu kararlar** verildi?
 
-`lib/` 44 dosya / 2.944 satır · `test/` 24 dosya / 2.208 satır · **107 test** · satır kapsamı **%92,1** · `flutter analyze` sıfır uyarı
+`lib/` 44 dosya / 3.018 satır · `test/` 25 dosya / 2.303 satır · **112 test** · satır kapsamı **%90** · `flutter analyze` sıfır uyarı
 
 ---
 
@@ -443,7 +443,7 @@ eski formülle geri alınıp koşulduğunda **15,2 piksel farkla kırmızıya d�
 
 ## 5. Test Stratejisi
 
-`flutter test` → **107 test**, `flutter analyze` → sıfır uyarı, `dart format` → temiz.
+`flutter test` → **112 test**, `flutter analyze` → sıfır uyarı, `dart format` → temiz.
 Üçü de her push'ta CI'da kapı olarak koşar (`.github/workflows/ci.yml`).
 
 Dört seviye:
@@ -490,6 +490,7 @@ ihlal ettiğini isim isim söyler.
 |---|---|
 | `presentation/main_menu_overlay_test.dart` | Kayıtlı skor gösterimi, kural özeti, BAŞLA'nın oyunu başlatması, geçmiş listesi |
 | `presentation/hud_overlay_test.dart` | Skor metninin güncellenmesi, duraklat butonu |
+| `presentation/pause_overlay_test.dart` | Anlık skor gösterimi ve canlı güncellenmesi, DEVAM ET, ANA MENÜ'nün skoru sıfırlaması, ses düğmesi |
 | `presentation/game_over_overlay_test.dart` | Döküm, **diske yazma**, rekor bildirimi, düşük skorun rekoru ezmemesi, **`dispose` yarışında kaydın tamamlanması** (§4.9) |
 | `presentation/back_navigation_test.dart` | Ana menüde geri tuşunun gerçekten çıkış yapması — platform kanalı taklit edilerek (§4.11) |
 | `data/score_repository_impl_test.dart` | Repository mantığı (`mocktail` ile sahte depo) |
@@ -499,33 +500,45 @@ depo (`KeyValueStore`) dışarıdan verilir. Üçü de somut bir problemi çöze
 
 Sıkı statik analiz: `strict-casts`, `strict-inference`, `strict-raw-types` + 10 ek lint kuralı.
 
-### Ölçülen kapsam: %92,1 (619/672 satır)
+### Ölçülen kapsam: %90 (668/742 satır)
 
 ```bash
 flutter test --coverage
 ```
 
-Rakamın kendisinden daha anlamlı olan, **kapsanmayan yerlerin hangileri olduğu.** Sıfır
-kapsamlı yalnızca iki dosya var ve ikisi de aynı türden:
+Rakamın kendisinden daha anlamlı olan, **kapsanmayan 74 satırın nerede olduğu.** Yarısı
+platform sınırındaki adaptörlerde:
 
 | Dosya | Kapsam | Neden |
 |---|---|---|
-| `flame_game_audio.dart` | **%0** | Gerçek `flame_audio` uygulaması — platform kanalı gerektirir |
-| `shared_prefs_key_value_store.dart` | **%0** | Gerçek `shared_preferences` uygulaması — platform kanalı gerektirir |
+| `shared_prefs_key_value_store.dart` | **%0** (0/14) | Gerçek `shared_preferences` — platform kanalı gerektirir |
+| `flame_game_audio.dart` | **%26** (7/27) | Gerçek `flame_audio` + oynatıcı havuzları — platform kanalı gerektirir |
+| `game_boot_views.dart` | **%25** (3/12) | Yükleme ve hata ekranları; hata yolunu tetiklemek gerçek bir yükleme hatası ister |
+| `game_screen.dart` | **%62** (23/37) | Yaşam döngüsü ve ayar köprüsü; ikisi de platform olayı ister |
+| `drag_input_component.dart` | **%50** (2/4) | `onDragUpdate` gövdesi, aşağıda |
 
-Bu bir eksik değil, **tasarımın kendisi.** İkisi de platform sınırındaki ince adaptörler
-(19 ve 14 satır) ve tam olarak bu yüzden ayrı sınıflar: iş mantığı onların arkasındaki
-`GameAudio` / `KeyValueStore` sözleşmelerine bağlı, dolayısıyla geri kalan her şey sahte
-uygulamalarla test edilebiliyor. Dependency Inversion'ın somut karşılığı budur —
-**test edilemeyen kodu 33 satıra sıkıştırmak.**
+İlk ikisi bir eksik değil, **tasarımın kendisi.** Platform sınırındaki ince adaptörler ve tam
+olarak bu yüzden ayrı sınıflar: iş mantığı onların arkasındaki `GameAudio` / `KeyValueStore`
+sözleşmelerine bağlı, dolayısıyla geri kalan her şey sahte uygulamalarla test edilebiliyor.
+Dependency Inversion'ın somut karşılığı budur — **test edilemeyen kodu birkaç düzine satıra
+sıkıştırmak.**
 
-Kalan bilinen boşluk: `drag_input_component.dart` %50. `containsLocalPoint` ve delta'nın
+**Kapsam ölçümünün kendisi bir hata buldu:** `pause_overlay.dart` %0'daydı. Diğer üç
+overlay'in widget testi vardı, duraklatmanın yoktu. Test **sayısına** bakıp "yeterli" demenin
+neden yanlış olduğunun somut örneği; `pause_overlay_test.dart` bu boşluğu kapattı.
+
+Kalan bilinen boşluk: `drag_input_component.dart`. `containsLocalPoint` ve delta'nın
 dönüştürülmeden taşınması kapsandı; `onDragUpdate` gövdesi kapsanmadı — çünkü gerçek jest
 boru hattı `GameWidget` içinde bir `GameRenderBox` istiyor ve `DisplacementEvent.localDelta`
 yalnızca olay `deliverAtPoint` ile dağıtılırken okunabiliyor. Widget testiyle denendi ve
 karşılıklı beklemeyle kilitlendi: varlık yüklemesi gerçek dosya okuması olduğu için
 `tester.runAsync` gerekiyor, ama `game.loaded` kare çevrilmesini bekliyor ve `runAsync`
 kare çevirmiyor. Doğru araç `integration_test` ile gerçek cihaz; yapılmadı ve gizlenmiyor.
+
+> **Not:** Kapsam yüzdesinin paydası tamamen kararlı değil. Dart yalnızca test izolatının
+> YÜKLEDIĞI kütüphaneleri raporlar, bu yüzden hangi dosyaların sayıldığı koşudan koşuya
+> değişebilir. Yüzdeyi tek başına bir kalite kapısı olarak kullanmak bu nedenle yanıltıcı;
+> burada onu bir **keşif aracı** olarak kullandım ve bir eksik test buldurdu.
 
 ### Yorum yazım kuralı
 
