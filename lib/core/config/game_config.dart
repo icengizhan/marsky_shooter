@@ -51,6 +51,53 @@ abstract final class GameConfig {
   /// Iki ates arasindaki bekleme (saniye). Otomatik ates hizini belirler.
   static const double fireCooldown = 0.22;
 
+  // ------------------------------------------------------- guc yukseltmeleri
+  /// Silah seviyesi tavani. Her elmas bir kademe yukseltir.
+  ///
+  /// 4'te durduruluyor: daha yukarisi ya ekrani mermiyle doldurup carpisma
+  /// taramasini gereksiz buyutur ya da oyunu tamamen kolaylastirir. Tavan
+  /// olmasa "topla ve kazan" oyunu olurdu.
+  static const int maxWeaponLevel = 4;
+
+  /// Seviye 2 ve 3'te mermilerin merkezden yatay sapmasi (piksel).
+  ///
+  /// 14 secildi: dusman hitbox yaricapi 16,8; daha genis olsa iki mermi ayni
+  /// dusmani hic vurmaz, daha dar olsa seviye atlama hissedilmez.
+  static const double bulletSpreadOffset = 14;
+
+  /// Son seviyede ates araligi bu carpanla kisalir (0,8 = %25 daha hizli).
+  ///
+  /// Seviye 4 mermi SAYISINI artirmiyor, HIZINI artiriyor -- ekranda ayni anda
+  /// bulunan mermi sayisi kontrol altinda kalsin diye.
+  static const double maxLevelFireRateFactor = 0.8;
+
+  // -------------------------------------------------------------------- can
+  /// Oyuncunun vurus hakki.
+  ///
+  /// NEDEN 3, NEDEN 1 DEGIL: tek temasla oyun bitince olculen ortalama kosu
+  /// 11-26 saniyede kaliyordu. Oyuncu silah yukseltmesini toplayip tadini
+  /// almadan oyun bitiyor, yani guclenme dongusu hic kurulmuyordu.
+  static const int playerMaxLives = 3;
+
+  /// Vurus sonrasi dokunulmazlik suresi (saniye).
+  ///
+  /// Olmasa oyuncu bir dusman kumesinin icinde tum canlarini tek anda kaybeder
+  /// ve ne oldugunu anlamaz. Bu pencerede gemi yanip soner.
+  static const double invulnerabilityDuration = 1.5;
+
+  /// Dokunulmazlikta gemi saniyede kac kez yanip soner.
+  static const double invulnerabilityBlinksPerSecond = 6;
+
+  // ---------------------------------------------------------------- seviye
+  /// "SEVIYE N" yazisinin ekranda kalma suresi (saniye).
+  static const double levelBannerDuration = 1.2;
+
+  /// Seviye atlandiginda dusman uretiminin duraklama suresi (saniye).
+  ///
+  /// Kucuk bir nefes: oyuncu seviye atladigini fark eder ve yeni tempoya
+  /// hazirlanir. Bu olmadan zorluk artisi gorunmez bir sekilde oluyordu.
+  static const double levelUpSpawnPause = 1.0;
+
   // ---------------------------------------------------------------- dusman
   static const double enemyWidth = 40;
   static const double enemyHeight = 40;
@@ -227,6 +274,28 @@ abstract final class GameConfig {
     assert(
       deathAnimationDuration > 0,
       'deathAnimationDuration sifir olsa olum animasyonu gorunmez',
+    );
+    assert(playerMaxLives > 0, 'playerMaxLives sifir olsa oyun hic baslamaz');
+    assert(
+      maxWeaponLevel >= 1,
+      'maxWeaponLevel en az 1 olmali; 0 silahsiz oyuncu demek',
+    );
+    assert(
+      maxLevelFireRateFactor > 0 && maxLevelFireRateFactor <= 1,
+      'maxLevelFireRateFactor 0-1 arasinda olmali; 1 ustu son seviyeyi '
+      'YAVASLATIR, 0 ise sonsuz ates',
+    );
+    assert(
+      invulnerabilityDuration > 0,
+      'invulnerabilityDuration sifir olsa oyuncu tum canlarini tek anda kaybeder',
+    );
+    assert(
+      bulletSpreadOffset > 0,
+      'bulletSpreadOffset sifir olsa coklu mermi ust uste biner',
+    );
+    assert(
+      levelUpSpawnPause < difficultyStepSeconds,
+      'levelUpSpawnPause zorluk adimindan uzun olsa spawn hic calismaz',
     );
     return true;
   }
