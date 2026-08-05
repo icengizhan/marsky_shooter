@@ -378,6 +378,45 @@ tuşundan sonra ön plan launcher'a geçiyor, uygulama süreci ise yaşamaya dev
 **Ders:** Bu hatayı hiçbir birim testi bulamazdı, çünkü hata **platform sözleşmesinde**ydi.
 Release derlemesini gerçek bir cihazda elle çalıştırmanın yerini test tutmuyor.
 
+### 4.12 Her ateş sesi yeni bir oynatıcı kuruyordu
+
+**Belirti:** Release derlemesinde 30 saniyeden uzun oynandığında logcat'e yakalanmayan
+hatalar düşüyordu:
+
+```
+Unhandled Exception: TimeoutException after 0:00:30.000000: Future not completed
+  AudioPlayer._completePrepared (audioplayers/src/audioplayer.dart:372)
+  AudioPlayer.setSourceAsset  (audioplayers/src/audioplayer.dart:429)
+```
+
+**Nasıl bulundu:** Ekran görüntüsü almak için oyun ~45 saniye kesintisiz oynandı. Daha kısa
+oturumlarda hata hiç görünmüyordu, çünkü zaman aşımının dolması için 30 saniye geçmesi
+gerekiyor.
+
+**Sebep:** `FlameAudio.play` her çağrıda **yeni bir native oynatıcı** hazırlıyor. Ateş sesi
+0,22 saniyede bir çalıyor, yani saniyede ~4,5 oynatıcı kurulup atılıyordu. Emülatörün ses
+katmanı bu hızı karşılayamayınca bazı oynatıcılar "hazır" durumuna hiç gelmedi ve
+`audioplayers`ın 30 saniyelik iç zaman aşımına takıldı.
+
+**İkinci ve daha sinsi kusur:** Sonuç `await` edilmediği için hata **hiçbir yerde
+yakalanmıyordu.** Beklenmeyen bir `Future`'ın hatası Flutter'ın zone yakalayıcısına düşer ve
+loga "Unhandled Exception" olarak yazılır. Bu, §4.9'daki `dispose` yarışıyla **aynı hata
+sınıfı**: beklememek, hatayı ele almak değildir.
+
+**Çözüm:** Sık çalan sesler (ateş, patlama) `AudioPool` üzerinden çalıyor. Havuz önceden
+hazırlanmış oynatıcıları yeniden kullanıyor; `audioplayers` dokümanı bunu tam olarak
+"extremely quick firing, repetitive or simultaneous sounds" durumu için öneriyor. Elmas sesi
+havuzlanmadı: 3,5-7 saniyede bir çalıyor, üst üste binmesi pratikte imkânsız. Ayrıca her
+oynatma çağrısına açık bir hata yakalayıcı eklendi, böylece çalmayan bir ses artık logu
+kirletmiyor.
+
+**Doğrulama:** Aynı senaryo (45+ saniye kesintisiz oynanış) yeniden koşuldu:
+**sıfır `TimeoutException`, sıfır yakalanmayan hata.**
+
+**Ders:** Mermiler için nesne havuzu kullanıp ses oynatıcılarını her seferinde yeniden kurmak
+tutarsızdı. Aynı problem (sık üretilen pahalı nesne) aynı çözümü istiyor; havuzun bir
+katmanda doğru olması onu diğer katmanda hatırlamaya yetmiyor.
+
 ### 4.10 Gemi hareketi kare hızına göre farklı davranıyordu
 
 **Belirti:** Kod yorumu "`dt` ile çarpıldığı için FPS'ten bağımsızdır" diyordu. Denetimde bu

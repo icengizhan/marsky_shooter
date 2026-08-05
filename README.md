@@ -123,12 +123,13 @@ Her maddenin kodda nerede karşılandığı ve **neden bu şekilde** yapıldığ
 - ✅ Object pooling, eşzamanlı düşman üst sınırı ve kare süresi ölçümü — sayılar
   [ARCHITECTURE.md §7](ARCHITECTURE.md)'de
 
-`ARCHITECTURE.md` §4 ayrıca geliştirme sırasında **ölçümle bulunan** on bir gerçek problemi ve
+`ARCHITECTURE.md` §4 ayrıca geliştirme sırasında **ölçümle bulunan** on iki gerçek problemi ve
 çözümlerini içerir — hitbox'ların içi boş gelmesi, sesin oyunu test edilemez kılması, Android
 ses odağının çalınması, puanın %88'inin tek kaynaktan gelmesi, asenkron `onLoad`'ın senkron
 test döngüsünü kilitlemesi, testlerin kırılganlığı, widget testlerinin yakaladığı iki hata,
 açılıştaki beyaz parlama, skor kaydını kaybeden `dispose` yarışı, gemi hareketinin kare
-hızına göre farklı davranması ve ana menüde geri tuşunun ölü kalması.
+hızına göre farklı davranması, ana menüde geri tuşunun ölü kalması ve her ateş sesinin yeni
+bir ses oynatıcısı kurması.
 
 Her biri **ölçümle** bulundu ve her birinin **kırmızıya döndüğü doğrulanmış** bir regresyon
 testi var — testlerin gerçekten ayırt ettiği, eski koda geri dönülüp sınanarak kontrol edildi.
