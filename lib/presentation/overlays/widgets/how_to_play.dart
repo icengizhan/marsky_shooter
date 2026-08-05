@@ -55,11 +55,14 @@ class HowToPlay extends StatelessWidget {
           text: 'Her saniye hayatta kal',
           value: '+${GameConfig.scorePerSecond}',
         ),
+        // Bu satirda `accent` YOK, `iconColor` var. `accent` sonda bir tehlike
+        // ikonu cizdiriyor; can sayisi bir tehlike degil bilgi ve iki satir
+        // ust uste ayni ikonu gosterince anlam da kayboluyordu.
         const _RuleRow(
           icon: Icons.favorite_rounded,
+          iconColor: Color(0xFFFF5C8A),
           text:
               '${GameConfig.playerMaxLives} canın var · vurulunca silah düşer',
-          accent: Color(0xFFFF5C8A),
         ),
         const _RuleRow(
           image: 'assets/images/enemy.png',
@@ -78,13 +81,21 @@ class _RuleRow extends StatelessWidget {
     this.icon,
     this.value,
     this.accent,
+    this.iconColor,
   });
 
   final String text;
   final String? image;
   final IconData? icon;
   final String? value;
+
+  /// Verilirse satirin SONUNDA bir tehlike ikonu cizer. Yalnizca oyunu
+  /// bitirebilecek kurallar icin kullanilir.
   final Color? accent;
+
+  /// Bastaki ikonun rengi. `accent`ten ayri: renk vermek "bu tehlikeli" demek
+  /// zorunda degil.
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +109,11 @@ class _RuleRow extends StatelessWidget {
             child: Center(
               child: image != null
                   ? Image.asset(image!, width: 24, height: 24)
-                  : Icon(icon, size: 20, color: const Color(0xFFB8E9F5)),
+                  : Icon(
+                      icon,
+                      size: 20,
+                      color: iconColor ?? const Color(0xFFB8E9F5),
+                    ),
             ),
           ),
           const SizedBox(width: 10),
