@@ -4,7 +4,7 @@ Bu doküman iki soruya cevap verir:
 1. Case PDF'indeki her teknik beklenti **kodda nerede** karşılandı?
 2. Alternatifler yerine **neden bu kararlar** verildi?
 
-`lib/` 45 dosya / 3.498 satır · `test/` 27 dosya / 2.733 satır · **140 test** · satır kapsamı **%91** · `flutter analyze` sıfır uyarı
+`lib/` 45 dosya / 3.511 satır · `test/` 27 dosya / 2.733 satır · **140 test** · satır kapsamı **%91** · `flutter analyze` sıfır uyarı
 
 ---
 
