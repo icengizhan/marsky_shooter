@@ -105,7 +105,17 @@ class EnemyComponent extends SpriteComponent with HasGameReference<MarskyGame> {
     super.update(dt);
 
     // Hareket her zaman `dt` ile olceklenir -> FPS'ten bagimsiz hiz.
-    position += velocity * dt;
+    //
+    // `addScaled` KULLANILIR, `position += velocity * dt` YAZILMAZ: ikincisi
+    // her karede iki yeni `Vector2` tahsis eder (once `velocity * dt`, sonra
+    // toplamin kendisi). Ekranda 9 dusman varken bu, saniyede ~1.000 kisa
+    // omurlu nesne demektir; `addScaled` ayni hesabi SIFIR tahsisle yapar.
+    //
+    // Flame'in `NotifyingVector2`u `addScaled`i override edip degisikligi
+    // bildirir (bkz. flame/src/game/notifying_vector2.dart), yani donusum
+    // onbellegi bayat kalmaz -- dogrudan `storage`a yazan bir yontem secilse
+    // dusman hesapta hareket eder ama EKRANDA durabilirdi.
+    position.addScaled(velocity, dt);
 
     // Ekran disina cikan dusman temizlenir (ve havuza doner).
     // Yanlar da kontrol edilir: nisan sapmasi yuzunden capraz inen bir dusman

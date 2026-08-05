@@ -143,7 +143,14 @@ class PlayerComponent extends SpriteComponent
     // clamp'e gerek kalmaz: `dt > 0` iken sonuc dogal olarak [0, 1) araligindadir,
     // bu yuzden kare atlamasinda bile hedefi asma (overshoot) olusamaz.
     final double t = 1 - exp(-GameConfig.playerFollowSpeed * dt);
-    position += (_target - position) * t;
+
+    // `setValues` ile tek seferde yazilir. `position += (_target - position) * t`
+    // yazimi her karede UC yeni `Vector2` tahsis ederdi (fark, olcekli fark ve
+    // toplam); bu bicim sifir tahsisle ayni sonucu verir ve tek bildirim uretir.
+    position.setValues(
+      position.x + (_target.x - position.x) * t,
+      position.y + (_target.y - position.y) * t,
+    );
   }
 
   void _updateFiring(double dt) {
