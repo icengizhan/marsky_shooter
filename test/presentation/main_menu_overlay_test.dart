@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:marsky_shooter/core/config/game_config.dart';
 import 'package:marsky_shooter/data/repositories/score_repository_impl.dart';
 import 'package:marsky_shooter/game/marsky_game.dart';
 import 'package:marsky_shooter/game/state/game_phase.dart';
@@ -58,8 +59,31 @@ void main() {
       await pumpMenu(tester, InMemoryKeyValueStore());
 
       expect(find.text('NASIL OYNANIR'), findsOneWidget);
-      expect(find.text('Elmas topla'), findsOneWidget);
-      expect(find.text('Düşmana çarparsan oyun biter'), findsOneWidget);
+      expect(find.text('Her saniye hayatta kal'), findsOneWidget);
+      expect(find.text('Canın biterse oyun biter'), findsOneWidget);
+    });
+
+    testWidgets('kural ozeti CAN ve SILAH mekanigini anlatir', (
+      WidgetTester tester,
+    ) async {
+      // Bu test bilincli olarak METNI kontrol ediyor. Mekanik degistiginde
+      // (tek temas -> uc can) menudeki aciklamanin geride kalmasi gercekten
+      // yasandi: oyun uc can veriyorken menu "carparsan oyun biter" diyordu.
+      // Oyuncunun okudugu ile oyunun yaptigi ayrisirsa ogretici yaniltici olur.
+      await pumpMenu(tester, InMemoryKeyValueStore());
+
+      expect(
+        find.text('Elmas topla: silahın güçlenir'),
+        findsOneWidget,
+        reason: 'elmasin PUAN degil GUC verdigi anlatilmali',
+      );
+      expect(
+        find.text(
+          '${GameConfig.playerMaxLives} canın var · vurulunca silah düşer',
+        ),
+        findsOneWidget,
+        reason: 'can sayisi yapilandirmadan gelmeli, metne gomulu olmamali',
+      );
     });
 
     testWidgets('BASLA butonu oyunu baslatir', (WidgetTester tester) async {

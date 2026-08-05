@@ -42,9 +42,12 @@ class HowToPlay extends StatelessWidget {
           text: 'Ateş otomatik · düşmanı vur',
           value: '+${GameConfig.scorePerEnemyKilled}',
         ),
+        // Elmas satiri PUANDAN once GUCU soyluyor: oyuncunun bilmesi gereken
+        // asil sey silahin yukselmesi, puan ikincil. Yukari cikip elmas almak
+        // oyundaki tek gercek risk/odul karari ve bu satir onu ogretiyor.
         const _RuleRow(
           image: 'assets/images/pickup.png',
-          text: 'Elmas topla',
+          text: 'Elmas topla: silahın güçlenir',
           value: '+${GameConfig.scorePerPickupCollected}',
         ),
         const _RuleRow(
@@ -53,8 +56,14 @@ class HowToPlay extends StatelessWidget {
           value: '+${GameConfig.scorePerSecond}',
         ),
         const _RuleRow(
+          icon: Icons.favorite_rounded,
+          text:
+              '${GameConfig.playerMaxLives} canın var · vurulunca silah düşer',
+          accent: Color(0xFFFF5C8A),
+        ),
+        const _RuleRow(
           image: 'assets/images/enemy.png',
-          text: 'Düşmana çarparsan oyun biter',
+          text: 'Canın biterse oyun biter',
           accent: Color(0xFFFF76C4),
         ),
       ],
