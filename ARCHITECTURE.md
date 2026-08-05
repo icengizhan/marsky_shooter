@@ -4,7 +4,7 @@ Bu doküman iki soruya cevap verir:
 1. Case PDF'indeki her teknik beklenti **kodda nerede** karşılandı?
 2. Alternatifler yerine **neden bu kararlar** verildi?
 
-`lib/` 44 dosya / 3.018 satır · `test/` 25 dosya / 2.303 satır · **112 test** · satır kapsamı **%90** · `flutter analyze` sıfır uyarı
+`lib/` 45 dosya / 3.498 satır · `test/` 27 dosya / 2.733 satır · **140 test** · satır kapsamı **%91** · `flutter analyze` sıfır uyarı
 
 ---
 
@@ -50,7 +50,7 @@ lib/
 │   │   ├── pickup_spawner.dart     → sabit aralık
 │   │   ├── difficulty_curve.dart   → SAF DART zorluk eğrisi
 │   │   └── enemy_aim.dart          → SAF DART nişan/sapma hesabı
-│   └── state/                      → GamePhase, GameScore, GameOverlays
+│   └── state/                      → GamePhase, GameScore, RunState, GameOverlays
 │
 └── presentation/                   → Flutter + Riverpod; oyunu barındırır
     ├── screens/game_screen.dart    → GameWidget + overlay kayıtları + geri tuşu + ayar köprüsü
@@ -96,8 +96,8 @@ oyun motorunu ve iş mantığını platform kanalı kurmadan çalıştırabilmem
 |---|---|
 | Dokunarak/sürükleyerek kontrol | `DragInputComponent` — ekranın **her yerinden** sürükleme (§3.3) |
 | Rastgele aralıkla spawn, oyuncuya doğru hareket | `EnemySpawner` + `EnemyAim` (spawn anında oyuncuya doğru, ±20° sapmalı) |
-| Süreye **veya** toplanan nesneye bağlı skor | **Üçü birlikte:** hayatta kalma + vurulan düşman + toplanan elmas (`GameScore`) |
-| Anlık güncellenen skor | `HudOverlay` + `ValueListenableBuilder` (yalnızca metin yenilenir) |
+| Süreye **veya** toplanan nesneye bağlı skor | **Üçü birlikte:** hayatta kalma + vurulan düşman + toplanan elmas (`GameScore`). Elmas ayrıca **silahı yükseltir** (§3.11) |
+| Anlık güncellenen skor | `HudOverlay` + `ValueListenableBuilder` — skor, kalan can ve silah seviyesi **ayrı ayrı** dinlenir, biri değişince diğerleri yeniden kurulmaz |
 | Ana menü (başla + en yüksek skor) | `MainMenuOverlay` — ayrıca skor geçmişi ve kural özeti (`HowToPlay`) |
 | Oyun içi | `GamePhase.playing` |
 | Duraklat (tamamen durur, devam edilir) | `PauseOverlay` + `pauseEngine()`/`resumeEngine()` |
@@ -209,6 +209,54 @@ ve versiyonlanabilir, (3) inceleyen kişi görsellerin nereden geldiğini tek do
 alanı ve ikon sabit tohumlu `Random` ile üretilir — her çalıştırmada aynı desen çıkar, `git diff`'te
 sebepsiz değişiklik olmaz. Launcher ikonu **oyunun gerçek oyuncu sprite'ından** üretilir, yani ikon
 ile oyun içindeki gemi birebir aynıdır.
+
+### 3.11 Güç ilerlemesi: neden bu üç mekanik birlikte
+
+**Problem ölçümle bulundu.** Tek temasla ölünen sürümde gerçek oyunlar **11-26 saniye**
+sürüyordu. Oyuncu bir elması toplayıp güçlendiğini fark etmeden oyun bitiyordu; zorluk artıyor
+ama oyuncu hiç güçlenmiyordu, yani bir koşunun **arkı yoktu**: kaybetmek kaçınılmazdı ve
+kazanılan hiçbir şey yoktu.
+
+Üç mekanik ayrı ayrı değil **bir set olarak** eklendi, çünkü teker teker işe yaramazlar:
+
+| Mekanik | Tek başına neden yetmez |
+|---|---|
+| **Elmas → silah seviyesi** | Koşu 15 saniye sürüyorsa oyuncu yükseltmenin tadını alamaz |
+| **Üç can** | Güçlenme yoksa uzayan koşu yalnızca daha uzun bir kayıp olur |
+| **Seviye duyurusu** | İlerleme göstergesi, ilerleyecek bir şey yoksa boş bir sayaçtır |
+
+**Ölçülen sonuç:** aynı oynanış tarzıyla skorlar 260-460 bandından **740-1360** bandına
+çıktı, yani koşular 2-3 kat uzadı.
+
+**Sayı seçimlerinin gerekçeleri:**
+
+- **Silah tavanı 4.** Daha yukarısı ya ekranı mermiyle doldurup çarpışma taramasını gereksiz
+  büyütür ya da oyunu tamamen kolaylaştırır. Tavan olmasa "topla ve kazan" oyunu olurdu.
+- **Son seviye mermi sayısını değil ateş hızını artırır.** Ekranda aynı anda bulunan mermi
+  sayısı sınırlı kalsın diye; yükselme hissi hızdan gelir.
+- **Mermi sapması 14 piksel.** Düşman hitbox yarıçapı 16,8; daha genişse iki mermi aynı
+  düşmanı hiç vurmaz, daha darsa seviye atlama hissedilmez.
+- **Vurulunca silah bir kademe düşer, 1'in altına inmez.** Ceza hissedilir olmalı ama oyuncuyu
+  silahsız bırakmamalı; yoksa son can bir ceza değil mahkumiyet olur.
+- **1,5 saniye dokunulmazlık.** Olmasa oyuncu bir düşman kümesine girdiğinde tüm canlarını
+  tek anda kaybeder ve ne olduğunu anlamaz.
+- **Seviye atlamasında 1 saniye üretim nefesi.** Zorluk artışı önceden **görünmüyordu**.
+
+**İki incelik kayda değer:**
+
+1. **Aynı karede iki düşman çarparsa tek can gider.** `startInvulnerability()`
+   `handlePlayerHit` içinde **senkron** çağrıldığı için, o karede çalışan ikinci çarpışma geri
+   çağrısı oyuncuyu zaten dokunulmaz görür. Dokunulmazlık kontrolünün çarpışma katmanında
+   olmasının sebebi bu; `handlePlayerHit` içine konsa "hasar uygula" çağrısı kendi kendini
+   sessizce yutan bir metoda dönüşürdü. Regresyon testi var.
+2. **Nefes sırasında sayaçlar tamamen durur**, yalnızca `spawnOne()` atlanmaz. Atlansaydı geri
+   sayım birikir ve nefes biter bitmez birkaç düşman aynı anda boşalırdı.
+
+**`RunState` neden ayrı bir sınıf:** skor bir **sonuçtur**, can/silah/seviye ise oyunun anlık
+**gücüdür**. `GameScore` içine konsalar "skor" adı yalancı olur ve oyun bitti ekranının
+kopyaladığı döküm gereksizce büyürdü. `MarskyGame` içine alan olarak konsalar da kök sınıf üç
+`ValueNotifier` daha taşıyıp davranış tutan bir sınıfa doğru kayardı. Ayrı durduğu için Flame'i
+de Flutter'ı da bilmiyor ve tüm kuralları oyun ayağa kaldırılmadan test edilebiliyor.
 
 ---
 
@@ -443,7 +491,7 @@ eski formülle geri alınıp koşulduğunda **15,2 piksel farkla kırmızıya d�
 
 ## 5. Test Stratejisi
 
-`flutter test` → **112 test**, `flutter analyze` → sıfır uyarı, `dart format` → temiz.
+`flutter test` → **140 test**, `flutter analyze` → sıfır uyarı, `dart format` → temiz.
 Üçü de her push'ta CI'da kapı olarak koşar (`.github/workflows/ci.yml`).
 
 Dört seviye:
@@ -468,6 +516,7 @@ ihlal ettiğini isim isim söyler.
 | `game/enemy_aim_test.dart` | Sapmasız tam nişan, hız büyüklüğünün korunması, açı kayması |
 | `game/game_score_test.dart` | Kesirli `dt` biriktirme, FPS'ten bağımsız puanlama, reset |
 | `game/score_breakdown_test.dart` | Kaynak dökümü ve toplamın tutarlılığı |
+| `game/run_state_test.dart` | Can azalması ve sıfırın altına inmemesi, silah tavanı, vurulunca kademe düşmesi ama 1'in altına inmemesi, seviyenin süreden türetilmesi |
 
 **2. Oyun davranışı** (`flame_test` ile oyun ayağa kaldırılıp kare kare ilerletilir)
 
@@ -483,6 +532,7 @@ ihlal ettiğini isim isim söyler.
 | `game/back_button_test.dart` | Kademeli geri: oynanış→duraklat→menü→çıkış |
 | `game/component_pool_test.dart` | **Geri dönüşümün ölçülmesi**, üst sınır, `reset` bayrak temizliği |
 | `game/enemy_cap_test.dart` | Sınır doluyken spawn atlanması, yan sınır temizliği, `GameConfig` tutarlılığı |
+| `game/power_up_test.dart` | Elmasın hem puan hem güç vermesi, seviye 2'nin **gerçekten iki mermi** atması, **aynı karede iki temasın tek can götürmesi**, dokunulmazlığın bitmesi, seviye bannerı ve üretim nefesi |
 
 **3. Sunum katmanı** (widget testleri, `ProviderScope(overrides:)` ile)
 
@@ -491,6 +541,7 @@ ihlal ettiğini isim isim söyler.
 | `presentation/main_menu_overlay_test.dart` | Kayıtlı skor gösterimi, kural özeti, BAŞLA'nın oyunu başlatması, geçmiş listesi |
 | `presentation/hud_overlay_test.dart` | Skor metninin güncellenmesi, duraklat butonu |
 | `presentation/pause_overlay_test.dart` | Anlık skor gösterimi ve canlı güncellenmesi, DEVAM ET, ANA MENÜ'nün skoru sıfırlaması, ses düğmesi |
+| `presentation/main_menu_overlay_test.dart` | Kayıtlı skor, kural özeti metinleri (**can ve silah mekaniğini doğru anlattığı**), BAŞLA, geçmiş listesi |
 | `presentation/game_over_overlay_test.dart` | Döküm, **diske yazma**, rekor bildirimi, düşük skorun rekoru ezmemesi, **`dispose` yarışında kaydın tamamlanması** (§4.9) |
 | `presentation/back_navigation_test.dart` | Ana menüde geri tuşunun gerçekten çıkış yapması — platform kanalı taklit edilerek (§4.11) |
 | `data/score_repository_impl_test.dart` | Repository mantığı (`mocktail` ile sahte depo) |
@@ -500,13 +551,13 @@ depo (`KeyValueStore`) dışarıdan verilir. Üçü de somut bir problemi çöze
 
 Sıkı statik analiz: `strict-casts`, `strict-inference`, `strict-raw-types` + 10 ek lint kuralı.
 
-### Ölçülen kapsam: %90 (668/742 satır)
+### Ölçülen kapsam: %91 (801/880 satır)
 
 ```bash
 flutter test --coverage
 ```
 
-Rakamın kendisinden daha anlamlı olan, **kapsanmayan 74 satırın nerede olduğu.** Yarısı
+Rakamın kendisinden daha anlamlı olan, **kapsanmayan 79 satırın nerede olduğu.** Büyük kısmı
 platform sınırındaki adaptörlerde:
 
 | Dosya | Kapsam | Neden |
@@ -514,8 +565,9 @@ platform sınırındaki adaptörlerde:
 | `shared_prefs_key_value_store.dart` | **%0** (0/14) | Gerçek `shared_preferences` — platform kanalı gerektirir |
 | `flame_game_audio.dart` | **%26** (7/27) | Gerçek `flame_audio` + oynatıcı havuzları — platform kanalı gerektirir |
 | `game_boot_views.dart` | **%25** (3/12) | Yükleme ve hata ekranları; hata yolunu tetiklemek gerçek bir yükleme hatası ister |
-| `game_screen.dart` | **%62** (23/37) | Yaşam döngüsü ve ayar köprüsü; ikisi de platform olayı ister |
+| `game_audio.dart` | **%50** (4/8) | Sözleşme + `SilentGameAudio`; gerçek uygulamanın gövdesi yukarıda |
 | `drag_input_component.dart` | **%50** (2/4) | `onDragUpdate` gövdesi, aşağıda |
+| `settings_providers.dart` | **%50** (4/8) | Ses ayarı köprüsü; platform olayı ister |
 
 İlk ikisi bir eksik değil, **tasarımın kendisi.** Platform sınırındaki ince adaptörler ve tam
 olarak bu yüzden ayrı sınıflar: iş mantığı onların arkasındaki `GameAudio` / `KeyValueStore`

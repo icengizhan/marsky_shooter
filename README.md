@@ -24,9 +24,27 @@ kontrol, otomatik ateş ve toplanabilir elmaslar.</em></p>
 - **Ekranın herhangi bir yerinde sürükle** — gemi parmağını yumuşak bir gecikmeyle takip eder
 - **Ateş otomatiktir** (0,22 saniyede bir mermi)
 - Düşmanlar yukarıdan, oyuncuya doğru **açılı** iner — vurmak için yatayda hizalanmak gerekir
-- **Bir düşmana çarparsan oyun biter** (can yok, tek temas)
+- **Üç canın var.** Vurulunca kısa süre dokunulmaz olursun (gemi yanıp söner) ve silahın bir
+  kademe geriler; canlar bitince oyun biter
 - **Geri tuşu bir kademe yukarı çıkarır:** oynanış → duraklat → ana menü → çıkış
 - Uygulama arka plana alınırsa oyun **otomatik duraklar** (gelen arama yüzünden haksız ölüm olmaz)
+
+### Silah yükseltmesi
+
+Elmas toplamak yalnızca puan vermez, **silahını güçlendirir:**
+
+| Seviye | Ateş | Gereken elmas |
+|---|---|---|
+| Lv 1 | 1 mermi | — |
+| Lv 2 | 2 paralel mermi | 1 |
+| Lv 3 | 3 mermi (orta + iki yan) | 2 |
+| MAX | 3 mermi + **%25 daha hızlı ateş** | 3 |
+
+Son seviye mermi **sayısını** değil **hızını** artırır: ekranda aynı anda bulunan mermi
+sayısı sınırlı kalsın, çarpışma taraması gereksiz büyümesin.
+
+Bu, yukarı çıkıp elmas almayı bir puan tercihi olmaktan çıkarıp **güç yatırımına** çevirir —
+oyundaki tek gerçek risk/ödül kararı buydu.
 
 ### Puan
 
@@ -36,11 +54,13 @@ kontrol, otomatik ateş ve toplanabilir elmaslar.</em></p>
 | Vurulan düşman | +10 |
 | Toplanan elmas | +100 |
 
-Elmas en değerli kaynak: onu almak için güvenli konumundan çıkıp düşmanların arasına
-girmen gerekir — oyundaki tek gerçek risk/ödül kararı.
+### Zorluk
 
-Zorluk her 15 saniyede artar (düşman oluşma aralığı ×0,88), ama 0,25 saniyelik bir tabanın
-altına inmez; oyun oynanamaz hale gelmez.
+Her 15 saniyede bir **seviye atlanır**: ekranda kısa bir "SEVİYE N" yazısı görünür, düşman
+üretimi bir saniye nefes alır ve ardından oluşma aralığı ×0,88 kısalır. Aralık 0,25 saniyelik
+bir tabanın altına inmez; oyun oynanamaz hale gelmez.
+
+Nefes bilinçli: zorluk artışı önceden **görünmüyordu**, oyuncu ilerleme hissi almıyordu.
 
 ---
 
@@ -113,12 +133,12 @@ Her maddenin kodda nerede karşılandığı ve **neden bu şekilde** yapıldığ
 **[ARCHITECTURE.md](ARCHITECTURE.md)** dosyasında madde madde eşlenmiştir. Özet:
 
 - ✅ Flame zorunlu — oynanışta tek bir Flutter widget'ı yok
-- ✅ Component mimarisi — oyun mantığı `game/` altında 17 sınıfa dağıtılmış, kök sınıf yalnızca kompozisyon yapar
+- ✅ Component mimarisi — oyun mantığı `game/` altında 18 sınıfa dağıtılmış, kök sınıf yalnızca kompozisyon yapar
 - ✅ Hitbox tabanlı çarpışma — `active`/`passive` ayrımı ile performanslı, sıfır manuel kesişim matematiği
 - ✅ Riverpod ile oyun dışı state yönetimi
 - ✅ Asset preload — `onLoad`'da bir kez, component'ler önbellekten okur
 - ✅ Clean Architecture + SOLID — katmanlar tek yönlü bağımlı, `domain/` framework bağımsız
-- ✅ 112 test, satır kapsamı **%90**, `flutter analyze` sıfır uyarı (strict-casts / strict-inference / strict-raw-types)
+- ✅ 140 test, satır kapsamı **%91**, `flutter analyze` sıfır uyarı (strict-casts / strict-inference / strict-raw-types)
 - ✅ Katman sınırları **testle** korunuyor — `domain/`'e Flutter import edilirse CI kırılır
 - ✅ Object pooling, eşzamanlı düşman üst sınırı ve kare süresi ölçümü — sayılar
   [ARCHITECTURE.md §7](ARCHITECTURE.md)'de
