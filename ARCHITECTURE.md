@@ -611,14 +611,18 @@ tam Türkçe olan ya kaynağa ya son kullanıcıya aittir.
 Case "karmaşık senaryolara gerek yoktur; temel mekaniklerin kusursuz çalışması beklenir" diyor.
 Bu doğrultuda aşağıdakiler **kasıtlı olarak** yapılmadı:
 
-- **Can/kalkan sistemi** (tek çarpışma = oyun bitti). `PlayerComponent` çarpışmayı yalnızca
-  *bildirir*, kararı `MarskyGame` verir — can sistemi eklenmek istenirse oyuncu sınıfı değişmez.
-- **Farklı düşman türleri ve güç yükseltmeleri.** `EnemyComponent` türetilip `update`'i
-  değiştirilerek eklenebilir; `MarskyGame` değişmez (açık/kapalı prensibi).
+- **Farklı düşman türleri.** `EnemyComponent` türetilip `update`'i değiştirilerek eklenebilir;
+  `MarskyGame` değişmez (açık/kapalı prensibi).
 - **Elmas havuzlanması** — üretim sıklığı düşük, kazanç ölçülemez (§3.5).
 - **Yerelleştirme (i18n)** — metinler kodda sabit Türkçe.
 - **Windows desktop hedefi** — Visual Studio C++ araç zinciri gerektirdiği için kurulmadı. Hedef
   platform Android; geliştirme sırasında hızlı iterasyon için web (Chrome) kullanıldı.
+
+> **Not:** Can sistemi ve silah yükseltmeleri ilk sürümde bu listedeydi. Sonradan eklendiler,
+> çünkü ölçüm gerçek bir problemi gösterdi (koşular 11-26 saniyede bitiyordu — §3.11).
+> Buradaki mimari öngörü işe yaradı: `PlayerComponent` çarpışmayı yalnızca *bildirdiği* ve
+> kararı `MarskyGame` verdiği için, can sistemi eklenirken oyuncu sınıfında yalnızca
+> dokunulmazlık kontrolü değişti.
 
 ---
 
